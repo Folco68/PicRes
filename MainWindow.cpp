@@ -35,6 +35,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->VLayoutPercentage->setAlignment(ui->SpinboxPercentage, Qt::AlignHCenter);
     ui->VLayoutAbsoluteSize->setAlignment(ui->SpinboxAbsoluteSize, Qt::AlignHCenter);
 
+    // Hide progress bar
+    ui->ProgressBar->setVisible(false);
+    ui->LabelCurrentFile->setVisible(false);
+
     // Configure the table displaying the dropped files
     // The table is created here and not with the WYSIWYG tool, because I prefer to configure it by hand
     QStringList Labels;
@@ -106,6 +110,12 @@ MainWindow::~MainWindow()
 
 void MainWindow::onButtonResizeClicked(bool)
 {
+    // Show and set the progress bar
+    ui->ProgressBar->setVisible(true);
+    ui->ProgressBar->setMinimum(1);
+    ui->ProgressBar->setMaximum(Table->rowCount());
+    ui->LabelCurrentFile->setVisible(true);
+
     // List of filename that couldn't be resized
     QStringList InvalidFiles;
 
@@ -114,6 +124,10 @@ void MainWindow::onButtonResizeClicked(bool)
         // Get filename and open image
         QString Filename = Table->item(i, COLUMN_FILENAME)->data(Qt::DisplayRole).toString();
         QImage Image(Filename);
+
+        // Refresh progress bar
+        ui->ProgressBar->setValue(i + 1);
+        ui->LabelCurrentFile->setText(Filename);
 
         // Get dimensions and update them
         int Width = Table->item(i, COLUMN_WIDTH)->data(Qt::DisplayRole).toInt();
@@ -151,6 +165,8 @@ void MainWindow::onButtonResizeClicked(bool)
     Table->setRowCount(0);
     Table->setVisible(false);
     ui->LabelDrop->setVisible(true);
+    ui->ProgressBar->setVisible(false);
+    ui->LabelCurrentFile->setVisible(false);
 
     // Disable some UI elements
     ui->RadioPercentage->setDisabled(true);
