@@ -1,15 +1,15 @@
+#include "MainWindow.hpp"
+#include "DlgErrorList.hpp"
+#include "TableItem.hpp"
+#include "ui_MainWindow.h"
+#include <QAbstractItemView>
+#include <QCoreApplication>
+#include <QHeaderView>
+#include <QImageReader>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QVBoxLayout>
-#include <QHeaderView>
 #include <QRadioButton>
-#include <QImageReader>
-#include <QAbstractItemView>
-#include "TableItem.hpp"
-#include "MainWindow.hpp"
-#include "ui_MainWindow.h"
-#include "DlgErrorList.hpp"
-
+#include <QVBoxLayout>
 
 //
 //  MainWindow
@@ -17,12 +17,11 @@
 // Constructor
 //
 
-MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow),
-    Table(new QTableWidget),
-    SupportedExtensionList(QImageReader::supportedImageFormats()),
-    TableAlreadyShown(false)
+MainWindow::MainWindow()
+    : ui(new Ui::MainWindow)
+    , Table(new QTableWidget)
+    , SupportedExtensionList(QImageReader::supportedImageFormats())
+    , TableAlreadyShown(false)
 {
     //
     //  UI
@@ -32,12 +31,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // Center some widgets
     centralWidget()->layout()->setAlignment(ui->ButtonResize, Qt::AlignHCenter);
-    ui->VLayoutPercentage->setAlignment(ui->SpinboxPercentage, Qt::AlignHCenter);
-    ui->VLayoutAbsoluteSize->setAlignment(ui->SpinboxAbsoluteSize, Qt::AlignHCenter);
+    ui->HLayoutPercentage->setAlignment(ui->SpinboxPercentage, Qt::AlignHCenter);
+    ui->HLayoutAbsoluteSize->setAlignment(ui->SpinboxAbsoluteSize, Qt::AlignHCenter);
 
-    // Hide progress bar
+    // Set progress bar
     ui->ProgressBar->setVisible(false);
-    ui->LabelCurrentFile->setVisible(false);
+    ui->ProgressBar->setAlignment(Qt::AlignCenter);
 
     // Configure the table displaying the dropped files
     // The table is created here and not with the WYSIWYG tool, because I prefer to configure it by hand
@@ -112,22 +111,31 @@ void MainWindow::onButtonResizeClicked(bool)
 {
     // Show and set the progress bar
     ui->ProgressBar->setVisible(true);
-    ui->ProgressBar->setMinimum(1);
-    ui->ProgressBar->setMaximum(Table->rowCount());
-    ui->LabelCurrentFile->setVisible(true);
+    ui->ProgressBar->setRange(0, Table->rowCount());
+    ui->ProgressBar->reset();
+
+    // Disable some UI elements, to avoid modifications during resizing process
+    ui->RadioPercentage->setDisabled(true);
+    ui->RadioAbsoluteSize->setDisabled(true);
+    ui->SpinboxPercentage->setDisabled(true);
+    ui->SpinboxAbsoluteSize->setDisabled(true);
+    ui->ButtonResize->setDisabled(true);
 
     // List of filename that couldn't be resized
     QStringList InvalidFiles;
 
     // Resize images
     for (int i = 0; i < Table->rowCount(); i++) {
-        // Get filename and open image
+        // Get filename
         QString Filename = Table->item(i, COLUMN_FILENAME)->data(Qt::DisplayRole).toString();
-        QImage Image(Filename);
 
         // Refresh progress bar
         ui->ProgressBar->setValue(i + 1);
-        ui->LabelCurrentFile->setText(Filename);
+        ui->ProgressBar->setFormat(tr("Resizing file: %1").arg(Filename));
+        QCoreApplication::processEvents();
+
+        // Open image
+        QImage Image(Filename);
 
         // Get dimensions and update them
         int Width = Table->item(i, COLUMN_WIDTH)->data(Qt::DisplayRole).toInt();
@@ -166,14 +174,6 @@ void MainWindow::onButtonResizeClicked(bool)
     Table->setVisible(false);
     ui->LabelDrop->setVisible(true);
     ui->ProgressBar->setVisible(false);
-    ui->LabelCurrentFile->setVisible(false);
-
-    // Disable some UI elements
-    ui->RadioPercentage->setDisabled(true);
-    ui->RadioAbsoluteSize->setDisabled(true);
-    ui->SpinboxPercentage->setDisabled(true);
-    ui->SpinboxAbsoluteSize->setDisabled(true);
-    ui->ButtonResize->setDisabled(true);
 }
 
 
@@ -188,10 +188,22 @@ void MainWindow::onPicturesDropped(QList<QUrl> URLs)
     bool OnePictureValid = false;
     QStringList InvalidFiles;
 
+    // Show and set the progress bar
+    ui->ProgressBar->setVisible(true);
+    ui->ProgressBar->setRange(0, URLs.size());
+    ui->ProgressBar->reset();
+
     // Browse the list to add valid picture files
     for (int i = 0; i < URLs.size(); i++) {
-        // Read filename, and don't add it twice if it's already part of the list
+        // Read filename
         QString filename(URLs.at(i).toLocalFile());
+
+        // Refresh progress bar
+        ui->ProgressBar->setValue(i + 1);
+        ui->ProgressBar->setFormat(tr("Reading file data: %1").arg(filename));
+        QCoreApplication::processEvents();
+
+        // Don't add the file twice if it's already part of the list
         bool FileAlreadyPresent = false;
         for (int i = 0; i < Table->rowCount(); i++) {
             if (filename == Table->item(i, COLUMN_FILENAME)->data(Qt::DisplayRole).toString()) {
@@ -236,6 +248,9 @@ void MainWindow::onPicturesDropped(QList<QUrl> URLs)
         }
     }
 
+    // Remove progress bar
+    ui->ProgressBar->setVisible(false);
+
     // Update UI if no file was dropped yet and if at least one file is valid
     if (OnePictureValid && !TableAlreadyShown) {
         TableAlreadyShown = true;
@@ -259,7 +274,6 @@ void MainWindow::onPicturesDropped(QList<QUrl> URLs)
         Dialog.exec();
     }
 }
-
 
 //
 //  onSpinBoxValueChanged

@@ -1,1 +1,1 @@
-
+- catch the Close signal to avoid termination during processing

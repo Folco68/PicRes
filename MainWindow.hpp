@@ -21,7 +21,7 @@ class MainWindow:
 
     public:
         // Ctor/dtor
-        explicit MainWindow(QWidget *parent = nullptr);
+        MainWindow();
         ~MainWindow();
 
     private:
