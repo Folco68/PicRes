@@ -17,7 +17,7 @@
 // Constructor
 //
 
-MainWindow::MainWindow()
+MainWindow::MainWindow(int argc, char** argv)
     : ui(new Ui::MainWindow)
     , Table(new QTableWidget)
     , SupportedExtensionList(QImageReader::supportedImageFormats())
@@ -86,6 +86,16 @@ MainWindow::MainWindow()
 
     // Connect the main window to the signal emitted by the dropbox
     connect(ui->BoxDrop, &Dropbox::picturesDropped, this, &MainWindow::onPicturesDropped);
+
+    // If files were dropped on the program icon, add them to the UI
+    if (argc != 1) {
+        QList<QUrl> urls;
+        for (int i = 1; i < argc; i++) {
+            urls << QUrl::fromLocalFile(argv[i]);
+        }
+
+        onPicturesDropped(urls);
+    }
 }
 
 
@@ -185,6 +195,7 @@ void MainWindow::onButtonResizeClicked(bool)
 
 void MainWindow::onPicturesDropped(QList<QUrl> URLs)
 {
+    //    ui->LabelDrop->setText(URLs.at(0).toLocalFile());
     bool OnePictureValid = false;
     QStringList InvalidFiles;
 

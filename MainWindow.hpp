@@ -21,7 +21,7 @@ class MainWindow:
 
     public:
         // Ctor/dtor
-        MainWindow();
+        MainWindow(int argc, char** argv);
         ~MainWindow();
 
     private:
