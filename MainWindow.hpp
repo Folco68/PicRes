@@ -8,42 +8,48 @@
 #include <QTableWidget>
 #include <QUrl>
 
+//
+//  MainWindow
+//
+// This class handles the main interface
+//
+
 namespace Ui {
 class MainWindow;
 }
 
 class MainWindow : public QMainWindow
 {
-        Q_OBJECT
+    Q_OBJECT
 
-    public:
-        MainWindow(int argc, char** argv);
-        ~MainWindow();
+public:
+    MainWindow(int argc, char** argv);
+    ~MainWindow();
 
-    private:
-        // UI
-        Ui::MainWindow *ui;
-        QTableWidget* Table;                        // Main table, contaning filenames and size informations
-        QList<QByteArray> SupportedExtensionList;   // List of supported picture extension
-        QStringList InvalidDroppedFiles;            // Files that cannot be processed when they are dropped into the UI
+private:
+    // UI
+    Ui::MainWindow* ui;
+    QTableWidget* Table;                      // Main table, contaning filenames and size informations
+    QList<QByteArray> SupportedExtensionList; // List of supported picture extension
+    QStringList InvalidDroppedFiles;          // Files that cannot be processed when they are dropped into the UI
 
-        void updateSize(int& width, int& height); // Compute the new dimensions of a picture, according to the selected resizing method
-        void updateAllSizes();                    // Update sizes displayed in the table
-        void updateUI();                          // Update UI, depending on program state
+    void updateSize(int& width, int& height); // Compute the new dimensions of a picture, according to the selected resizing method
+    void updateAllSizes();                    // Update sizes displayed in the table
+    void updateUI();                          // Update UI, depending on program state
 
-        // Slots linked to UI
-        void clearTable();                        // Remove all entries imported in the main table
-        void cancelTask();                        // Cancel on the flight file dropping or resizing
-        void onResizingMethodChanged();           // Called when resizing method changes, to refresh new sizes
-        void onButtonResizeClicked();             // Start the main worker of this program
-        void onPicturesDropped(QList<QUrl> URLs); // Called when the UI receives files
-        void onPercentageValueChanged();          // Called when resizing values change, to update new sizes
-        void onAbsoluteValueChanged();            // Called when resizing values change, to update new sizes
+    // Slots linked to UI
+    void clearTable();                        // Remove all entries imported in the main table
+    void cancelTask();                        // Cancel on the flight file dropping or resizing
+    void onResizingMethodChanged();           // Called when resizing method changes, to refresh new sizes
+    void onButtonResizeClicked();             // Start the main worker of this program
+    void onPicturesDropped(QList<QUrl> URLs); // Called when the UI receives files
+    void onPercentageValueChanged();          // Called when resizing values change, to update new sizes
+    void onAbsoluteValueChanged();            // Called when resizing values change, to update new sizes
 
-        // Slots linked to drop thread
-        void onDropResultReady();                      // Says to the main window that data of a picture is ready to use
-        void onDroppedFileProcessed(QString filename); // Emitted when processed file changes
-        void onDropProcessTerminated();                // Says to the main window that all dropped files have been processed
+    // Slots linked to drop thread
+    void onDropResultReady();                      // Says to the main window that data of a picture is ready to use
+    void onDroppedFileProcessed(QString filename); // Emitted when processed file changes
+    void onDropProcessTerminated();                // Says to the main window that all dropped files have been processed
 };
 
 //

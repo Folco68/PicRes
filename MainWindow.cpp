@@ -121,6 +121,12 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+//
+//  updateUI
+//
+// Set UI according to program state
+//
+
 // WARNING: doesn't take in account the resize thread
 void MainWindow::updateUI()
 {
@@ -142,7 +148,7 @@ void MainWindow::updateUI()
 //
 //  onButtonResizeClicked
 //
-// Called when the user wants to resize the selected files
+// Called when the user wants to resize the files displayed in the table
 //
 
 void MainWindow::onButtonResizeClicked()
@@ -217,6 +223,13 @@ void MainWindow::onPicturesDropped(QList<QUrl> URLs)
     updateUI();
 }
 
+//
+//  onDropResultReady
+//
+// Slot called when the drop thread has available results
+// Get the results and display them in the main table
+//
+
 void MainWindow::onDropResultReady()
 {
     QList<QPair<QString, QSize>> result;
@@ -265,11 +278,24 @@ void MainWindow::onDropResultReady()
     }
 }
 
+//
+//  onDroppedFileProcessed
+//
+// Slot triggerer when the drop thread starts to process a file.
+// Allow to update the status bar with file name and percentage
+//
+
 void MainWindow::onDroppedFileProcessed(QString filename)
 {
     ui->ProgressBar->setValue(ui->ProgressBar->value() + 1);       // Update percentage value
     ui->ProgressBar->setFormat(QString("%1 (%p%)").arg(filename)); // Write filename + percentage in the progressbar
 }
+
+//
+//  onDropProcessTerminated
+//
+// Slot called when drop thread has terminated to handles dropped files. Update UI, and inform about process errors
+//
 
 void MainWindow::onDropProcessTerminated()
 {
@@ -285,9 +311,9 @@ void MainWindow::onDropProcessTerminated()
 }
 
 //
-//  onSpinBoxValueChanged
+//  updateAllSizes
 //
-// Update new sizes in the tables
+// Compute and display the new picture sizes, depending on the current resizing method
 //
 
 void MainWindow::updateAllSizes()
@@ -301,11 +327,23 @@ void MainWindow::updateAllSizes()
     }
 }
 
+//
+//  onPercentageValueChanged
+//
+// Ensure that the percentage radio button is set, then update sizes
+//
+
 void MainWindow::onPercentageValueChanged()
 {
     ui->RadioPercentage->setChecked(true);
     updateAllSizes();
 }
+
+//
+//  onAbsoluteValueChanged
+//
+// Ensure that the absolute radio button is set, then update sizes
+//
 
 void MainWindow::onAbsoluteValueChanged()
 {
@@ -314,9 +352,9 @@ void MainWindow::onAbsoluteValueChanged()
 }
 
 //
-//  updateDimensions
+//  updateSize
 //
-// Update the given dimensions according to the selected resizing method
+// Update the given size according to the selected resizing method
 //
 
 void MainWindow::updateSize(int& width, int& height)
@@ -345,12 +383,24 @@ void MainWindow::updateSize(int& width, int& height)
     height = max(height, 1);
 }
 
+//
+//  cleaTable
+//
+// Reset the main table
+//
+
 void MainWindow::clearTable()
 {
     Table->clearContents();
     Table->setRowCount(0);
     updateUI();
 }
+
+//
+//  cancelTask
+//
+// Slot triggere when the user wants to interrupt the dropping or resizing thread
+//
 
 void MainWindow::cancelTask()
 {

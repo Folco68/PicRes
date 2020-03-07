@@ -26,3 +26,6 @@
 - select resizing method depending on resizing value
 - add item count to Clear Table button
 - prevent to add a file in the table twice
+
+2020/03/07
+- update comments and presentation

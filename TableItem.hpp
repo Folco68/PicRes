@@ -17,5 +17,4 @@ class TableItem:
         explicit TableItem(QString text = QString());
 };
 
-
 #endif // TABLEITEM_HPP

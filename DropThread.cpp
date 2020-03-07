@@ -1,7 +1,19 @@
 #include "DropThread.hpp"
 #include <QImageReader>
 
+//
+//  dropthread
+//
+// Static variable containing a pointer to the unique DropThread instance
+//
+
 DropThread* DropThread::dropthread = nullptr;
+
+//
+//  instance
+//
+// Return a pointer to the DropThread instance. Instantiate it if it doesn't exist yet
+//
 
 DropThread* DropThread::instance()
 {
@@ -10,6 +22,12 @@ DropThread* DropThread::instance()
     }
     return dropthread;
 }
+
+//
+//  drop
+//
+// Called by the main window when files are dropped. Store received data and start the worker thread
+//
 
 void DropThread::drop(QList<QUrl> URLs)
 {
@@ -21,6 +39,14 @@ void DropThread::drop(QList<QUrl> URLs)
     // Start the thread (harmless if already started)
     DropThread::instance()->start();
 }
+
+//
+//  run
+//
+// Overrided method that handles received files. Put results in a list,
+// and emit some signals to make the main window aware of its process state.
+// This method runs in a separate thread
+//
 
 void DropThread::run()
 {
@@ -62,7 +88,13 @@ void DropThread::run()
     emit dropProcessTerminaded();
 }
 
-// May give an empty list
+//
+//  result
+//
+// Gives to the main window the results computed by the worker thread.
+// Support empty result list, because process and UI are asynchroneous
+//
+
 void DropThread::result(QList<QPair<QString, QSize>>* Result)
 {
     this->MutexResult.lock();
