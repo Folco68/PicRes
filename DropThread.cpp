@@ -34,14 +34,16 @@ void DropThread::run()
             break;
         }
 
-        // Take the first URL and read file data;
+        // Take the first URL and get filename
         QUrl url = Queue.takeFirst();
         this->MutexQueue.unlock();
         QString filename(url.toLocalFile());
+
+        // Emit a signal to say to the main UI which file is being processed²
         emit processingDroppedFile(filename);
-        QImageReader image(filename);
 
         // Add the picture filename and its size to the result list. Size is invalid if the picture couldn't be read
+        QImageReader image(filename);
         QSize size(image.canRead() ? image.size() : QSize());
         this->MutexResult.lock();
         this->Result << QPair<QString, QSize>(filename, size);

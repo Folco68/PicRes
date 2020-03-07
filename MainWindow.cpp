@@ -29,10 +29,12 @@ MainWindow::MainWindow(int argc, char** argv)
 
     ui->setupUi(this);
 
-    // Center some widgets
+    // Align some widgets
     centralWidget()->layout()->setAlignment(ui->ButtonResize, Qt::AlignHCenter);
     ui->HLayoutPercentage->setAlignment(ui->SpinboxPercentage, Qt::AlignHCenter);
     ui->HLayoutAbsoluteSize->setAlignment(ui->SpinboxAbsoluteSize, Qt::AlignHCenter);
+    ui->HLayoutProgress->setAlignment(Qt::AlignRight);
+    ui->BoxDrop->layout()->setAlignment(Qt::AlignCenter);
 
     // Set progress bar
     ui->ProgressBar->setAlignment(Qt::AlignCenter);
@@ -45,19 +47,19 @@ MainWindow::MainWindow(int argc, char** argv)
            << "Actual size"
            << "New size";
 
-    Table->setColumnCount(COLUMN_COUNT);
-    Table->setShowGrid(true);
-    Table->setSortingEnabled(true);
-    Table->setAlternatingRowColors(true);
-    Table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    Table->setSelectionMode(QAbstractItemView::SingleSelection);
-    Table->setSelectionBehavior(QAbstractItemView::SelectRows);
-    Table->horizontalHeader()->setStretchLastSection(true);
-    Table->verticalHeader()->setVisible(false);
-    Table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    Table->setHorizontalHeaderLabels(Labels);
+    this->Table->setColumnCount(COLUMN_COUNT);
+    this->Table->setShowGrid(true);
+    this->Table->setSortingEnabled(true);
+    this->Table->setAlternatingRowColors(true);
+    this->Table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    this->Table->setSelectionMode(QAbstractItemView::SingleSelection);
+    this->Table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    this->Table->horizontalHeader()->setStretchLastSection(true);
+    this->Table->verticalHeader()->setVisible(false);
+    this->Table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    this->Table->setHorizontalHeaderLabels(Labels);
 
-    ui->BoxDrop->layout()->addWidget(Table);
+    ui->VLayoutDrop->insertWidget(1, this->Table);
 
     updateUI();
 
@@ -66,23 +68,21 @@ MainWindow::MainWindow(int argc, char** argv)
     //
 
     // Remove extensions supported only in read-only mode by Qt
-    SupportedExtensionList.removeOne("GIF");
-    SupportedExtensionList.removeOne("PBM");
-    SupportedExtensionList.removeOne("PGM");
+    this->SupportedExtensionList.removeOne("GIF");
+    this->SupportedExtensionList.removeOne("PBM");
+    this->SupportedExtensionList.removeOne("PGM");
 
     //
     //  Connections
     //
 
     // Enable/disable the spinboxes according to the checked radio buttons. Force new size update
-    connect(ui->RadioPercentage, &QRadioButton::clicked, [this]() { onResizingMethodChanged(); });
-    connect(ui->RadioPercentage, &QRadioButton::clicked, [this]() { onSpinBoxValueChanged(); });
-    connect(ui->RadioAbsoluteSize, &QRadioButton::clicked, [this]() { onResizingMethodChanged(); });
-    connect(ui->RadioAbsoluteSize, &QRadioButton::clicked, [this]() { onSpinBoxValueChanged(); });
+    connect(ui->RadioPercentage, &QRadioButton::clicked, [this]() { updateAllSizes(); });
+    connect(ui->RadioAbsoluteSize, &QRadioButton::clicked, [this]() { updateAllSizes(); });
 
     // Connect the spinboxes to update the new size
-    connect(ui->SpinboxPercentage, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), [this]() { onSpinBoxValueChanged(); });
-    connect(ui->SpinboxAbsoluteSize, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), [this]() { onSpinBoxValueChanged(); });
+    connect(ui->SpinboxPercentage, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), [this]() { onPercentageValueChanged(); });
+    connect(ui->SpinboxAbsoluteSize, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), [this]() { onAbsoluteValueChanged(); });
 
     // Connect other buttons
     connect(ui->ButtonResize, &QPushButton::clicked, [this]() { onButtonResizeClicked(); });
@@ -127,14 +127,16 @@ void MainWindow::updateUI()
     // Shortcuts for common properties
     bool TableIsEmpty        = this->Table->rowCount() == 0;
     bool DropThreadIsRunning = DropThread::instance()->isRunning();
+    int ItemCount            = this->Table->rowCount();
 
     ui->ProgressBar->setVisible(DropThreadIsRunning);                       // Progress bar is visible if files are currently dropped
-    ui->LabelDrop->setVisible(TableIsEmpty);                                // Hint label is displayed if the table is empty
+    ui->LabelDrop->setVisible(TableIsEmpty && !DropThreadIsRunning);        // Hint label is displayed if the table is empty and no process running
     this->Table->setVisible(!TableIsEmpty);                                 // Table is displayed if it contains elements
     ui->BoxResizingMethod->setDisabled(TableIsEmpty);                       // Resizing methods are disabled if the table is empty
     ui->ButtonClearList->setVisible(!TableIsEmpty && !DropThreadIsRunning); // Can't clear the list if it's empty or in use
     ui->ButtonCancel->setVisible(DropThreadIsRunning);                      // Cancel button is visible only if a process is running
     ui->ButtonResize->setEnabled(!TableIsEmpty && !DropThreadIsRunning);    // We can resize when there is something to resize and drop process is complete
+    ui->ButtonClearList->setText(tr("Clear list (%1 items)").arg(ItemCount));
 }
 
 //
@@ -224,6 +226,13 @@ void MainWindow::onDropResultReady()
         QString filename = result.at(i).first;
         QSize size       = result.at(i).second;
 
+        // Check that the file is not added yet. If so, discard it without any warning message
+        for (int i = 0; i < this->Table->rowCount(); i++) {
+            if (filename == this->Table->item(i, COLUMN_FILENAME)->text()) {
+                continue;
+            }
+        }
+
         // Add the file to the table if it could be read, else add it to the error list
         if (size.isValid()) {
             // Compute new size
@@ -281,9 +290,9 @@ void MainWindow::onDropProcessTerminated()
 // Update new sizes in the tables
 //
 
-void MainWindow::onSpinBoxValueChanged()
+void MainWindow::updateAllSizes()
 {
-    for (int i = 0; i < Table->rowCount(); i++) {
+    for (int i = 0; i < this->Table->rowCount(); i++) {
         QSize size = this->Table->item(i, COLUMN_OLDSIZE)->data(Qt::DisplayRole).toSize();
         int width  = size.width();
         int height = size.height();
@@ -292,20 +301,17 @@ void MainWindow::onSpinBoxValueChanged()
     }
 }
 
-
-//
-//  onResizingMethodChanged
-//
-// Called when the Percentage or the Absolute Size radio button is clicked
-// Enable/disable the spinboxes according to the radio buttons
-//
-
-void MainWindow::onResizingMethodChanged()
+void MainWindow::onPercentageValueChanged()
 {
-    ui->SpinboxPercentage->setEnabled(ui->RadioPercentage->isChecked());
-    ui->SpinboxAbsoluteSize->setEnabled(!ui->RadioPercentage->isChecked());
+    ui->RadioPercentage->setChecked(true);
+    updateAllSizes();
 }
 
+void MainWindow::onAbsoluteValueChanged()
+{
+    ui->RadioAbsoluteSize->setChecked(true);
+    updateAllSizes();
+}
 
 //
 //  updateDimensions

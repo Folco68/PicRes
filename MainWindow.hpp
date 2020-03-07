@@ -28,6 +28,7 @@ class MainWindow : public QMainWindow
         QStringList InvalidDroppedFiles;            // Files that cannot be processed when they are dropped into the UI
 
         void updateSize(int& width, int& height); // Compute the new dimensions of a picture, according to the selected resizing method
+        void updateAllSizes();                    // Update sizes displayed in the table
         void updateUI();                          // Update UI, depending on program state
 
         // Slots linked to UI
@@ -36,7 +37,8 @@ class MainWindow : public QMainWindow
         void onResizingMethodChanged();           // Called when resizing method changes, to refresh new sizes
         void onButtonResizeClicked();             // Start the main worker of this program
         void onPicturesDropped(QList<QUrl> URLs); // Called when the UI receives files
-        void onSpinBoxValueChanged();             // Called when resizing values change, to update new sizes
+        void onPercentageValueChanged();          // Called when resizing values change, to update new sizes
+        void onAbsoluteValueChanged();            // Called when resizing values change, to update new sizes
 
         // Slots linked to drop thread
         void onDropResultReady();                      // Says to the main window that data of a picture is ready to use

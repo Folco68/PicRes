@@ -8,9 +8,7 @@
 // Ctor
 //
 
-DlgErrorList::DlgErrorList(QString message, QStringList filenames, QWidget *parent):
-    QDialog(parent),
-    ui(new Ui::DlgErrorList)
+DlgErrorList::DlgErrorList(QString message, QStringList filenames, QWidget* parent) : QDialog(parent), ui(new Ui::DlgErrorList)
 {
     // UI
     ui->setupUi(this);
@@ -20,7 +18,7 @@ DlgErrorList::DlgErrorList(QString message, QStringList filenames, QWidget *pare
     setMinimumSize(size().width() * 2, size().height());              // Tweak the horizontal size to avoid a scrollable list widget
 
     // Connection
-    connect(ui->ButtonOk, &QPushButton::clicked, this, &QDialog::accept); // Connect the Ok button to close the dialog
+    connect(ui->ButtonOk, &QPushButton::clicked, [this]() { accept(); }); // Connect the Ok button to close the dialog
 }
 
 //

@@ -1,16 +1,18 @@
 - catch qApp::close signal to avoid termination during processing
-- block drop signal when reading file data
-- disable the whole Resize box when needed?
-- find a way to make the window visible when files are dropped to program icon
-- move dropping and resizing in separate thread to avoid UI freeze and allow program termination during long processing (QThread)
++ block drop signal when reading file data
++ disable the whole Resize box when needed?
++ find a way to make the window visible when files are dropped to program icon
++ move dropping and resizing in separate thread to avoid UI freeze and allow program termination during long processing (QThread)
     => should allow window opening while dropping from CLI ??
-- put progress bar in central widget while dropping
-- display files/remove them from Table when they are processed
-- use functions to configure UI depending on program states (waiting for files, dropping, files added, resizing)
++ put progress bar in central widget while dropping
++ display files/remove them from Table when they are processed
++ use functions to configure UI depending on program states (waiting for files, dropping, files added, resizing)
 - set a license
-- remove event processing force in drop/resize methods when thread-solution is implemented
-- put Clear Table button in the dropbox box
++ put Clear Table button in the dropbox box
 - additional dialog to say that resized pictures will overwrite original ones
 - name consistency, comments etc...
-
-- worker must emit
+- delete resizing worker instance
++ check corresponding resize method when modifying spinbox
+- fix org size display
++ prevent to insert an item twice
++ display elements count on clear button
