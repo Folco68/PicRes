@@ -7,12 +7,13 @@
 + put progress bar in central widget while dropping
 + display files/remove them from Table when they are processed
 + use functions to configure UI depending on program states (waiting for files, dropping, files added, resizing)
-- set a license
++ set a license
 + put Clear Table button in the dropbox box
 - additional dialog to say that resized pictures will overwrite original ones
 - name consistency, comments etc...
 - delete resizing worker instance
 + check corresponding resize method when modifying spinbox
-- fix org size display
++ fix org size display
 + prevent to insert an item twice
 + display elements count on clear button
+- add license + history + howto in a widgets

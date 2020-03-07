@@ -1,3 +1,23 @@
+/*
+ * PicRes - GUI program to resize pictures in an easy way
+ * Copyright (C) 2020 Martial Demolins AKA Folco
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * mail: martial <dot> demolins <at> gmail <dot> com
+ */
+
 #include "MainWindow.hpp"
 #include "DlgErrorList.hpp"
 #include "DropThread.hpp"
@@ -11,6 +31,7 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QVBoxLayout>
+#include <QVariant>
 
 //
 //  MainWindow
@@ -240,10 +261,15 @@ void MainWindow::onDropResultReady()
         QSize size       = result.at(i).second;
 
         // Check that the file is not added yet. If so, discard it without any warning message
+        bool AlreadyPresent = false;
         for (int i = 0; i < this->Table->rowCount(); i++) {
             if (filename == this->Table->item(i, COLUMN_FILENAME)->text()) {
-                continue;
+                AlreadyPresent = true;
+                break;
             }
+        }
+        if (AlreadyPresent) {
+            continue;
         }
 
         // Add the file to the table if it could be read, else add it to the error list
@@ -255,16 +281,15 @@ void MainWindow::onDropResultReady()
 
             // Create the items to add. Use a QTableWidgetItem for the filename, because we don't want it to be centered
             QTableWidgetItem* ItemName = new QTableWidgetItem(filename);
-            //            TableItem* ItemOldSize     = new TableItem(QString("%1 x %2").arg(size.width()).arg(size.height()));
-            TableItem* ItemOldSize = new TableItem();
-            ItemOldSize->setData(Qt::DisplayRole, size);
-            TableItem* ItemNewSize = new TableItem(QString("%1 x %2").arg(NewWidth).arg(NewHeight));
+            TableItem* ItemOrgSize     = new TableItem(QString("%1 x %2").arg(size.width()).arg(size.height()));
+            TableItem* ItemNewSize     = new TableItem(QString("%1 x %2").arg(NewWidth).arg(NewHeight));
+            ItemOrgSize->setData(Qt::UserRole, QVariant::fromValue(size));
 
             // Populate the table
             int row = this->Table->rowCount();
             this->Table->insertRow(row);
             this->Table->setItem(row, COLUMN_FILENAME, ItemName);
-            this->Table->setItem(row, COLUMN_OLDSIZE, ItemOldSize);
+            this->Table->setItem(row, COLUMN_ORGSIZE, ItemOrgSize);
             this->Table->setItem(row, COLUMN_NEWSIZE, ItemNewSize);
         }
         else {
@@ -319,7 +344,7 @@ void MainWindow::onDropProcessTerminated()
 void MainWindow::updateAllSizes()
 {
     for (int i = 0; i < this->Table->rowCount(); i++) {
-        QSize size = this->Table->item(i, COLUMN_OLDSIZE)->data(Qt::DisplayRole).toSize();
+        QSize size = this->Table->item(i, COLUMN_ORGSIZE)->data(Qt::UserRole).toSize();
         int width  = size.width();
         int height = size.height();
         updateSize(width, height);

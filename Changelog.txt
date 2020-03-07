@@ -29,3 +29,8 @@
 
 2020/03/07
 - update comments and presentation
+
+2020/03/07
+- fix a bug that allowed file duplication in the table
+- fix the bug that prevented to display original sizes in the table
+- added GPL3 license
