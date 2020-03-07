@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
+    <width>891</width>
     <height>600</height>
    </rect>
   </property>
@@ -20,7 +20,7 @@
    <string>PicRes - Picture Resizer by MDS</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout_3">
+   <layout class="QVBoxLayout" name="verticalLayout">
     <item>
      <widget class="Dropbox" name="BoxDrop">
       <property name="font">
@@ -61,20 +61,38 @@
      </widget>
     </item>
     <item>
-     <spacer name="VSpacerBox1">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
+     <layout class="QHBoxLayout" name="HLayoutClear">
+      <item>
+       <widget class="QProgressBar" name="ProgressBar">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="maximum">
+         <number>0</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="ButtonCancel">
+        <property name="text">
+         <string>Cancel</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="ButtonClearList">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>Clear list</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
     <item>
      <widget class="QGroupBox" name="BoxResizingMethod">
@@ -90,7 +108,7 @@
        </font>
       </property>
       <property name="title">
-       <string>Resizing method</string>
+       <string>Resizing</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -113,9 +131,6 @@
         <layout class="QHBoxLayout" name="HLayoutPercentage">
          <item>
           <widget class="QRadioButton" name="RadioPercentage">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
            <property name="text">
             <string>Percentage:</string>
            </property>
@@ -129,9 +144,6 @@
          </item>
          <item>
           <widget class="QSpinBox" name="SpinboxPercentage">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
              <horstretch>0</horstretch>
@@ -177,9 +189,6 @@
         <layout class="QHBoxLayout" name="HLayoutAbsoluteSize">
          <item>
           <widget class="QRadioButton" name="RadioAbsoluteSize">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
            <property name="text">
             <string>Absolute size:</string>
            </property>
@@ -190,9 +199,6 @@
          </item>
          <item>
           <widget class="QSpinBox" name="SpinboxAbsoluteSize">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
              <horstretch>0</horstretch>
@@ -222,6 +228,42 @@
         </layout>
        </item>
        <item>
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QPushButton" name="ButtonResize">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>    Resize pictures!    </string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="HSpacerResizing3">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
@@ -235,71 +277,6 @@
         </spacer>
        </item>
       </layout>
-     </widget>
-    </item>
-    <item>
-     <spacer name="VSpacerBox2">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item>
-     <widget class="QProgressBar" name="ProgressBar">
-      <property name="enabled">
-       <bool>true</bool>
-      </property>
-      <property name="value">
-       <number>0</number>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <spacer name="verticalSpacer">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeType">
-       <enum>QSizePolicy::Fixed</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item>
-     <widget class="QPushButton" name="ButtonResize">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>12</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="text">
-       <string>    Resize pictures!    </string>
-      </property>
      </widget>
     </item>
    </layout>

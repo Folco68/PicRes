@@ -1,5 +1,6 @@
 #include "MainWindow.hpp"
 #include "DlgErrorList.hpp"
+#include "DropThread.hpp"
 #include "TableItem.hpp"
 #include "ui_MainWindow.h"
 #include <QAbstractItemView>
@@ -21,7 +22,6 @@ MainWindow::MainWindow(int argc, char** argv)
     : ui(new Ui::MainWindow)
     , Table(new QTableWidget)
     , SupportedExtensionList(QImageReader::supportedImageFormats())
-    , TableAlreadyShown(false)
 {
     //
     //  UI
@@ -35,13 +35,15 @@ MainWindow::MainWindow(int argc, char** argv)
     ui->HLayoutAbsoluteSize->setAlignment(ui->SpinboxAbsoluteSize, Qt::AlignHCenter);
 
     // Set progress bar
-    ui->ProgressBar->setVisible(false);
     ui->ProgressBar->setAlignment(Qt::AlignCenter);
+    ui->ProgressBar->setMinimum(0);
 
     // Configure the table displaying the dropped files
     // The table is created here and not with the WYSIWYG tool, because I prefer to configure it by hand
     QStringList Labels;
-    Labels << "File name" << "Width" << "Height" << "New size";
+    Labels << "File name"
+           << "Actual size"
+           << "New size";
 
     Table->setColumnCount(COLUMN_COUNT);
     Table->setShowGrid(true);
@@ -56,7 +58,8 @@ MainWindow::MainWindow(int argc, char** argv)
     Table->setHorizontalHeaderLabels(Labels);
 
     ui->BoxDrop->layout()->addWidget(Table);
-    Table->setVisible(false);
+
+    updateUI();
 
     //
     //  Data
@@ -72,20 +75,28 @@ MainWindow::MainWindow(int argc, char** argv)
     //
 
     // Enable/disable the spinboxes according to the checked radio buttons. Force new size update
-    connect(ui->RadioPercentage, &QRadioButton::clicked, this, &MainWindow::onResizingMethodChanged);
-    connect(ui->RadioPercentage, &QRadioButton::clicked, this, &MainWindow::onSpinBoxValueChanged);
-    connect(ui->RadioAbsoluteSize, &QRadioButton::clicked, this, &MainWindow::onResizingMethodChanged);
-    connect(ui->RadioAbsoluteSize, &QRadioButton::clicked, this, &MainWindow::onSpinBoxValueChanged);
+    connect(ui->RadioPercentage, &QRadioButton::clicked, [this]() { onResizingMethodChanged(); });
+    connect(ui->RadioPercentage, &QRadioButton::clicked, [this]() { onSpinBoxValueChanged(); });
+    connect(ui->RadioAbsoluteSize, &QRadioButton::clicked, [this]() { onResizingMethodChanged(); });
+    connect(ui->RadioAbsoluteSize, &QRadioButton::clicked, [this]() { onSpinBoxValueChanged(); });
 
     // Connect the spinboxes to update the new size
-    connect(ui->SpinboxPercentage, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &MainWindow::onSpinBoxValueChanged);
-    connect(ui->SpinboxAbsoluteSize, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &MainWindow::onSpinBoxValueChanged);
+    connect(ui->SpinboxPercentage, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), [this]() { onSpinBoxValueChanged(); });
+    connect(ui->SpinboxAbsoluteSize, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), [this]() { onSpinBoxValueChanged(); });
 
-    // Connect the process button
-    connect(ui->ButtonResize, &QPushButton::clicked, this, &MainWindow::onButtonResizeClicked);
+    // Connect other buttons
+    connect(ui->ButtonResize, &QPushButton::clicked, [this]() { onButtonResizeClicked(); });
+    connect(ui->ButtonClearList, &QPushButton::clicked, [this]() { clearTable(); });
+    connect(ui->ButtonCancel, &QPushButton::clicked, [this]() { cancelTask(); });
 
     // Connect the main window to the signal emitted by the dropbox
     connect(ui->BoxDrop, &Dropbox::picturesDropped, this, &MainWindow::onPicturesDropped);
+    //    connect(ui->BoxDrop, &Dropbox::picturesDropped, [this](QList<QUrl> URLs) { onPicturesDropped(URLs); });
+
+    // Connect dropping worker to main UI. Queued connections needed because of the different threads
+    connect(DropThread::instance(), &DropThread::dropResultReady, this, &MainWindow::onDropResultReady, Qt::QueuedConnection);
+    connect(DropThread::instance(), &DropThread::processingDroppedFile, this, &MainWindow::onDroppedFileProcessed, Qt::QueuedConnection);
+    connect(DropThread::instance(), &DropThread::dropProcessTerminaded, this, &MainWindow::onDropProcessTerminated, Qt::QueuedConnection);
 
     // If files were dropped on the program icon, add them to the UI
     if (argc != 1) {
@@ -94,10 +105,10 @@ MainWindow::MainWindow(int argc, char** argv)
             urls << QUrl::fromLocalFile(argv[i]);
         }
 
+        // Force file handling
         onPicturesDropped(urls);
     }
 }
-
 
 //
 //  ~MainWindow
@@ -110,6 +121,21 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+// WARNING: doesn't take in account the resize thread
+void MainWindow::updateUI()
+{
+    // Shortcuts for common properties
+    bool TableIsEmpty        = this->Table->rowCount() == 0;
+    bool DropThreadIsRunning = DropThread::instance()->isRunning();
+
+    ui->ProgressBar->setVisible(DropThreadIsRunning);                       // Progress bar is visible if files are currently dropped
+    ui->LabelDrop->setVisible(TableIsEmpty);                                // Hint label is displayed if the table is empty
+    this->Table->setVisible(!TableIsEmpty);                                 // Table is displayed if it contains elements
+    ui->BoxResizingMethod->setDisabled(TableIsEmpty);                       // Resizing methods are disabled if the table is empty
+    ui->ButtonClearList->setVisible(!TableIsEmpty && !DropThreadIsRunning); // Can't clear the list if it's empty or in use
+    ui->ButtonCancel->setVisible(DropThreadIsRunning);                      // Cancel button is visible only if a process is running
+    ui->ButtonResize->setEnabled(!TableIsEmpty && !DropThreadIsRunning);    // We can resize when there is something to resize and drop process is complete
+}
 
 //
 //  onButtonResizeClicked
@@ -117,19 +143,13 @@ MainWindow::~MainWindow()
 // Called when the user wants to resize the selected files
 //
 
-void MainWindow::onButtonResizeClicked(bool)
+void MainWindow::onButtonResizeClicked()
 {
+    /*
     // Show and set the progress bar
     ui->ProgressBar->setVisible(true);
     ui->ProgressBar->setRange(0, Table->rowCount());
     ui->ProgressBar->reset();
-
-    // Disable some UI elements, to avoid modifications during resizing process
-    ui->RadioPercentage->setDisabled(true);
-    ui->RadioAbsoluteSize->setDisabled(true);
-    ui->SpinboxPercentage->setDisabled(true);
-    ui->SpinboxAbsoluteSize->setDisabled(true);
-    ui->ButtonResize->setDisabled(true);
 
     // List of filename that couldn't be resized
     QStringList InvalidFiles;
@@ -141,16 +161,15 @@ void MainWindow::onButtonResizeClicked(bool)
 
         // Refresh progress bar
         ui->ProgressBar->setValue(i + 1);
-        ui->ProgressBar->setFormat(tr("Resizing file: %1").arg(Filename));
-        QCoreApplication::processEvents();
+        ui->ProgressBar->setFormat(tr("Resizing file: %1 (%p%)").arg(Filename));
 
         // Open image
         QImage Image(Filename);
 
         // Get dimensions and update them
-        int Width = Table->item(i, COLUMN_WIDTH)->data(Qt::DisplayRole).toInt();
+        int Width  = Table->item(i, COLUMN_WIDTH)->data(Qt::DisplayRole).toInt();
         int Height = Table->item(i, COLUMN_HEIGHT)->data(Qt::DisplayRole).toInt();
-        updateDimensions(Width, Height);
+        updateSize(Width, Height);
 
         // Resize the image
         QImage ResizedImage = Image.scaled(Width, Height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
@@ -178,12 +197,8 @@ void MainWindow::onButtonResizeClicked(bool)
     }
 
     // Clear the table and reset the UI
-    TableAlreadyShown = false;
-    Table->clearContents();
-    Table->setRowCount(0);
-    Table->setVisible(false);
-    ui->LabelDrop->setVisible(true);
-    ui->ProgressBar->setVisible(false);
+    clearTable();
+*/
 }
 
 
@@ -195,94 +210,68 @@ void MainWindow::onButtonResizeClicked(bool)
 
 void MainWindow::onPicturesDropped(QList<QUrl> URLs)
 {
-    //    ui->LabelDrop->setText(URLs.at(0).toLocalFile());
-    bool OnePictureValid = false;
-    QStringList InvalidFiles;
+    DropThread::instance()->drop(URLs);
+    ui->ProgressBar->setMaximum(ui->ProgressBar->maximum() + URLs.count());
+    updateUI();
+}
 
-    // Show and set the progress bar
-    ui->ProgressBar->setVisible(true);
-    ui->ProgressBar->setRange(0, URLs.size());
-    ui->ProgressBar->reset();
+void MainWindow::onDropResultReady()
+{
+    QList<QPair<QString, QSize>> result;
+    DropThread::instance()->result(&result);
 
-    // Browse the list to add valid picture files
-    for (int i = 0; i < URLs.size(); i++) {
-        // Read filename
-        QString filename(URLs.at(i).toLocalFile());
+    for (int i = 0; i < result.size(); i++) {
+        QString filename = result.at(i).first;
+        QSize size       = result.at(i).second;
 
-        // Refresh progress bar
-        ui->ProgressBar->setValue(i + 1);
-        ui->ProgressBar->setFormat(tr("Reading file data: %1").arg(filename));
-        QCoreApplication::processEvents();
-
-        // Don't add the file twice if it's already part of the list
-        bool FileAlreadyPresent = false;
-        for (int i = 0; i < Table->rowCount(); i++) {
-            if (filename == Table->item(i, COLUMN_FILENAME)->data(Qt::DisplayRole).toString()) {
-                FileAlreadyPresent = true;
-                break;
-            }
-        }
-        if (FileAlreadyPresent) {
-            continue;
-        }
-
-        // Open image
-        QImageReader image(filename);
-
-        // Add the picture to the table if it's a valid one
-        if (image.canRead()) {
-            OnePictureValid = true;
-
-            // Get actual and new dimensions
-            QSize Dimensions(image.size());
-            int NewWidth = Dimensions.width();
-            int NewHeight = Dimensions.height();
-            updateDimensions(NewWidth, NewHeight);
+        // Add the file to the table if it could be read, else add it to the error list
+        if (size.isValid()) {
+            // Compute new size
+            int NewWidth  = size.width();
+            int NewHeight = size.height();
+            updateSize(NewWidth, NewHeight);
 
             // Create the items to add. Use a QTableWidgetItem for the filename, because we don't want it to be centered
             QTableWidgetItem* ItemName = new QTableWidgetItem(filename);
-            TableItem* ItemWidth = new TableItem(QString("%1").arg(Dimensions.width()));
-            TableItem* ItemHeight = new TableItem(QString("%1").arg(Dimensions.height()));
+            //            TableItem* ItemOldSize     = new TableItem(QString("%1 x %2").arg(size.width()).arg(size.height()));
+            TableItem* ItemOldSize = new TableItem();
+            ItemOldSize->setData(Qt::DisplayRole, size);
             TableItem* ItemNewSize = new TableItem(QString("%1 x %2").arg(NewWidth).arg(NewHeight));
 
             // Populate the table
-            int Row = Table->rowCount();
-            Table->insertRow(Row);
-            Table->setItem(Row, COLUMN_FILENAME, ItemName);
-            Table->setItem(Row, COLUMN_WIDTH, ItemWidth);
-            Table->setItem(Row, COLUMN_HEIGHT, ItemHeight);
-            Table->setItem(Row, COLUMN_NEWSIZE, ItemNewSize);
+            int row = this->Table->rowCount();
+            this->Table->insertRow(row);
+            this->Table->setItem(row, COLUMN_FILENAME, ItemName);
+            this->Table->setItem(row, COLUMN_OLDSIZE, ItemOldSize);
+            this->Table->setItem(row, COLUMN_NEWSIZE, ItemNewSize);
         }
-        // The file can't be opened as an image, add its name to the reject list
         else {
-            InvalidFiles << filename;
+            this->InvalidDroppedFiles << filename;
         }
     }
 
-    // Remove progress bar
-    ui->ProgressBar->setVisible(false);
-
-    // Update UI if no file was dropped yet and if at least one file is valid
-    if (OnePictureValid && !TableAlreadyShown) {
-        TableAlreadyShown = true;
-
-        // Remove the hint text and show the table
-        ui->LabelDrop->setVisible(false);
-        Table->setVisible(true);
-
-        // Enable some settings
-        ui->RadioAbsoluteSize->setEnabled(true);
-        ui->RadioPercentage->setEnabled(true);
-        ui->ButtonResize->setEnabled(true);
-
-        // Enable the right spinbox
-        onResizingMethodChanged();
+    // Update UI only if the list contains data
+    if (result.count() != 0) {
+        updateUI();
     }
+}
 
-    // Display an error message if some files couldn't be opened
-    if (!InvalidFiles.isEmpty()) {
-        DlgErrorList Dialog(tr("Some files couldn't be opened:"), InvalidFiles);
-        Dialog.exec();
+void MainWindow::onDroppedFileProcessed(QString filename)
+{
+    ui->ProgressBar->setValue(ui->ProgressBar->value() + 1);       // Update percentage value
+    ui->ProgressBar->setFormat(QString("%1 (%p%)").arg(filename)); // Write filename + percentage in the progressbar
+}
+
+void MainWindow::onDropProcessTerminated()
+{
+    // Reset progress bar and update UI
+    ui->ProgressBar->setMaximum(0);
+    updateUI();
+
+    // Display invalid files if a problem occured, then clear the list
+    if (!this->InvalidDroppedFiles.isEmpty()) {
+        DlgErrorList::openDlgErrorList(tr("Some files couldn't be opened:"), this->InvalidDroppedFiles, this);
+        this->InvalidDroppedFiles.clear();
     }
 }
 
@@ -295,10 +284,11 @@ void MainWindow::onPicturesDropped(QList<QUrl> URLs)
 void MainWindow::onSpinBoxValueChanged()
 {
     for (int i = 0; i < Table->rowCount(); i++) {
-        int Width = Table->item(i, COLUMN_WIDTH)->data(Qt::DisplayRole).toInt();
-        int Height = Table->item(i, COLUMN_HEIGHT)->data(Qt::DisplayRole).toInt();
-        updateDimensions(Width, Height);
-        Table->item(i, COLUMN_NEWSIZE)->setText(QString("%1 x %2").arg(Width).arg(Height));
+        QSize size = this->Table->item(i, COLUMN_OLDSIZE)->data(Qt::DisplayRole).toSize();
+        int width  = size.width();
+        int height = size.height();
+        updateSize(width, height);
+        Table->item(i, COLUMN_NEWSIZE)->setText(QString("%1 x %2").arg(width).arg(height));
     }
 }
 
@@ -323,7 +313,7 @@ void MainWindow::onResizingMethodChanged()
 // Update the given dimensions according to the selected resizing method
 //
 
-void MainWindow::updateDimensions(int& width, int& height)
+void MainWindow::updateSize(int& width, int& height)
 {
     // Percentage method selected
     if (ui->RadioPercentage->isChecked()) {
@@ -347,4 +337,18 @@ void MainWindow::updateDimensions(int& width, int& height)
     // Prevent from getting a null size
     width = max(width, 1);
     height = max(height, 1);
+}
+
+void MainWindow::clearTable()
+{
+    Table->clearContents();
+    Table->setRowCount(0);
+    updateUI();
+}
+
+void MainWindow::cancelTask()
+{
+    if (DropThread::instance()->isRunning()) {
+        DropThread::instance()->requestInterruption();
+    }
 }

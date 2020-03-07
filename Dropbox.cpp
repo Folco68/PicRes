@@ -1,7 +1,6 @@
 #include <QMimeData>
 #include "Dropbox.hpp"
 
-
 //
 //  dragEnterEvent
 //
@@ -15,7 +14,6 @@ void Dropbox::dragEnterEvent(QDragEnterEvent* event)
     }
 }
 
-
 //
 //  dropEvent
 //
@@ -26,4 +24,3 @@ void Dropbox::dropEvent(QDropEvent *event)
 {
     emit picturesDropped(event->mimeData()->urls());
 }
-

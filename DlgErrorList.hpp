@@ -1,15 +1,12 @@
 #ifndef DLGERRORLIST_HPP
 #define DLGERRORLIST_HPP
 
-
 #include <QDialog>
 #include <QStringList>
-
 
 namespace Ui {
     class DlgErrorList;
 }
-
 
 //
 //  DlgErrorList
@@ -19,16 +16,15 @@ namespace Ui {
 
 class DlgErrorList : public QDialog
 {
-        Q_OBJECT
+    Q_OBJECT
 
-    public:
-        // Ctor/dtor. It receives the list of filenames to display
-        DlgErrorList(QString message, QStringList filenames, QWidget *parent = nullptr);
-        ~DlgErrorList();
+public:
+    static void openDlgErrorList(QString message, QStringList filenames, QWidget* parent);
 
-    private:
-        // UI
-        Ui::DlgErrorList *ui;
+private:
+    DlgErrorList(QString message, QStringList filenames, QWidget* parent);
+    ~DlgErrorList();
+    Ui::DlgErrorList* ui;
 };
 
 
