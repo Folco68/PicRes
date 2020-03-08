@@ -20,6 +20,7 @@
 
 #include "MainWindow.hpp"
 #include "DlgErrorList.hpp"
+#include "DlgHelp.hpp"
 #include "DropThread.hpp"
 #include "TableItem.hpp"
 #include "ui_MainWindow.h"
@@ -80,6 +81,7 @@ MainWindow::MainWindow(int argc, char** argv)
     this->Table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     this->Table->setHorizontalHeaderLabels(Labels);
 
+    // Insert between the tip label and the progress bar
     ui->VLayoutDrop->insertWidget(1, this->Table);
 
     updateUI();
@@ -109,10 +111,11 @@ MainWindow::MainWindow(int argc, char** argv)
     connect(ui->ButtonResize, &QPushButton::clicked, [this]() { onButtonResizeClicked(); });
     connect(ui->ButtonClearList, &QPushButton::clicked, [this]() { clearTable(); });
     connect(ui->ButtonCancel, &QPushButton::clicked, [this]() { cancelTask(); });
+    connect(ui->ButtonHelp, &QPushButton::clicked, [this]() { DlgHelp::openDlgHelp(this); });
 
     // Connect the main window to the signal emitted by the dropbox
-    connect(ui->BoxDrop, &Dropbox::picturesDropped, this, &MainWindow::onPicturesDropped);
-    //    connect(ui->BoxDrop, &Dropbox::picturesDropped, [this](QList<QUrl> URLs) { onPicturesDropped(URLs); });
+    // connect(ui->BoxDrop, &Dropbox::picturesDropped, this, &MainWindow::onPicturesDropped);
+    connect(ui->BoxDrop, &Dropbox::picturesDropped, [this](QList<QUrl> URLs) { onPicturesDropped(URLs); });
 
     // Connect dropping worker to main UI. Queued connections needed because of the different threads
     connect(DropThread::instance(), &DropThread::dropResultReady, this, &MainWindow::onDropResultReady, Qt::QueuedConnection);
@@ -152,18 +155,21 @@ MainWindow::~MainWindow()
 void MainWindow::updateUI()
 {
     // Shortcuts for common properties
-    bool TableIsEmpty        = this->Table->rowCount() == 0;
-    bool DropThreadIsRunning = DropThread::instance()->isRunning();
     int ItemCount            = this->Table->rowCount();
+    bool TableIsEmpty        = ItemCount == 0;
+    bool DropThreadIsRunning = DropThread::instance()->isRunning();
 
     ui->ProgressBar->setVisible(DropThreadIsRunning);                       // Progress bar is visible if files are currently dropped
     ui->LabelDrop->setVisible(TableIsEmpty && !DropThreadIsRunning);        // Hint label is displayed if the table is empty and no process running
     this->Table->setVisible(!TableIsEmpty);                                 // Table is displayed if it contains elements
-    ui->BoxResizingMethod->setDisabled(TableIsEmpty);                       // Resizing methods are disabled if the table is empty
+    ui->RadioPercentage->setDisabled(TableIsEmpty);                         // Resizing methods are disabled if the table is empty
+    ui->RadioAbsoluteSize->setDisabled(TableIsEmpty);                       // Resizing methods are disabled if the table is empty
+    ui->SpinboxPercentage->setDisabled(TableIsEmpty);                       // Resizing methods are disabled if the table is empty
+    ui->SpinboxAbsoluteSize->setDisabled(TableIsEmpty);                     // Resizing methods are disabled if the table is empty
     ui->ButtonClearList->setVisible(!TableIsEmpty && !DropThreadIsRunning); // Can't clear the list if it's empty or in use
     ui->ButtonCancel->setVisible(DropThreadIsRunning);                      // Cancel button is visible only if a process is running
     ui->ButtonResize->setEnabled(!TableIsEmpty && !DropThreadIsRunning);    // We can resize when there is something to resize and drop process is complete
-    ui->ButtonClearList->setText(tr("Clear list (%1 items)").arg(ItemCount));
+    ui->ButtonClearList->setText(tr("Clear list (%1 items)").arg(ItemCount)); // Display the size of the table in the Clear button
 }
 
 //

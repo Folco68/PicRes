@@ -60,6 +60,7 @@ DlgErrorList::~DlgErrorList()
 
 void DlgErrorList::openDlgErrorList(QString message, QStringList filenames, QWidget* parent)
 {
-    DlgErrorList dlg(message, filenames, parent);
-    dlg.exec();
+    DlgErrorList* dlg = new DlgErrorList(message, filenames, parent);
+    dlg->exec();
+    delete dlg;
 }

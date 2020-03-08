@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Changelog.txt</file>
+        <file>License.txt</file>
+        <file>Readme.txt</file>
+    </qresource>
+</RCC>
