@@ -42,7 +42,8 @@
 // Constructor
 //
 
-MainWindow::MainWindow(int argc, char* argv[]) : ui(new Ui::MainWindow), Table(new QTableWidget), SupportedExtensionList(QImageReader::supportedImageFormats())
+MainWindow::MainWindow(int argc, char* argv[])
+    : ui(new Ui::MainWindow), Table(new QTableWidget), SupportedExtensionList(QImageReader::supportedImageFormats()), CloseRequested(false)
 {
     //
     //  UI
@@ -347,20 +348,23 @@ void MainWindow::onFileResized()
 //
 //  onResizingTerminated
 //
-// Triggered when all files have been resized. Display a dialog to inform the user about operation success
+// Triggered when all files have been resized. Display a dialog to inform the user about operation success or failure.
+// Don't display anything if the user wants to close the program while a process is running
 //
 
 void MainWindow::onResizingTerminated()
 {
-    QStringList files = ResizeThread::instance()->invalidFiles();
-    if (files.isEmpty()) {
-        QMessageBox::information(this, MAIN_WINDOW_TITLE, tr("All files successfully resized!"), QMessageBox::Ok);
-    }
-    else {
-        DlgErrorList::openDlgErrorList(tr("Some files couldn't be resized"), files, this);
-    }
+    if (!this->CloseRequested) {
+        QStringList files = ResizeThread::instance()->invalidFiles();
+        if (files.isEmpty()) {
+            QMessageBox::information(this, MAIN_WINDOW_TITLE, tr("All files successfully resized!"), QMessageBox::Ok);
+        }
+        else {
+            DlgErrorList::openDlgErrorList(tr("Some files couldn't be resized"), files, this);
+        }
 
-    updateUI();
+        updateUI();
+    }
 }
 
 //
@@ -463,5 +467,37 @@ void MainWindow::cancelTask()
 
     if (ResizeThread::instance()->isRunning()) {
         ResizeThread::instance()->requestInterruption();
+    }
+}
+
+//
+//  closeEvent
+//
+// Overload closeEvent method to allow proper closing while processing files
+//
+
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+    if (DropThread::instance()->isRunning() || ResizeThread::instance()->isRunning()) {
+        auto answer = QMessageBox::question(this, MAIN_WINDOW_TITLE, tr("Do you want to interrupt current process ?"), QMessageBox::Yes | QMessageBox::No);
+        if (answer == QMessageBox::Yes) {
+            // Request interruption of both thread, don't care about which one is running
+            DropThread::instance()->requestInterruption();
+            ResizeThread::instance()->requestInterruption();
+            // Wait until threads have stopped
+            while (DropThread::instance()->isRunning() || ResizeThread::instance()->isRunning())
+                ;
+            // Prevent tome dialogs to pop up on exit
+            this->CloseRequested = true;
+            event->accept();
+        }
+        else {
+            // User doesn't want to stop
+            event->ignore();
+        }
+    }
+    else {
+        // Nothing do to if no thread is running
+        event->accept();
     }
 }

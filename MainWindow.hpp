@@ -22,6 +22,7 @@
 #define MAINWINDOW_HPP
 
 #include <QByteArray>
+#include <QCloseEvent>
 #include <QList>
 #include <QMainWindow>
 #include <QSize>
@@ -53,10 +54,12 @@ private:
     QTableWidget* Table;                      // Main table, contaning filenames and size informations
     QList<QByteArray> SupportedExtensionList; // List of supported picture extension
     QStringList InvalidDroppedFiles;          // Files that cannot be processed when they are dropped into the UI
+    bool CloseRequested;                      // True if close is requested, preventing some dialogs to pop up
 
     void updateSize(QSize& orgsize, QSize& newsize); // Compute the new dimensions of a picture, according to the selected resizing method
     void updateAllSizes();                           // Update sizes displayed in the table
     void updateUI();                                 // Update UI, depending on program state
+    void closeEvent(QCloseEvent* event) override;    // Intercept close event to allow program termination while a thread is running
 
     // Slots linked to UI
     void clearTable();                        // Remove all entries imported in the main table

@@ -1,4 +1,4 @@
-- catch qApp::close signal to avoid termination during processing
++ catch qApp::close signal to avoid termination during processing
 + block drop signal when reading file data
 + disable the whole Resize box when needed?
 + find a way to make the window visible when files are dropped to program icon
@@ -19,3 +19,4 @@
 + add license + history + howto in a widgets
 + block drop when resizing
 + set global window title (main window, dialogs)
+- silent close if closed while processing pictures to avoid "Resizing successful" message after main window closing
