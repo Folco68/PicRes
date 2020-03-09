@@ -1,0 +1,56 @@
+2019/05/15
+- initial release. Working version
+
+2020/03/02
+- added progress bar while resizing. Useful when resizing remote pictures
+
+2020/03/03
+- added support for files dropped on the program icon
+
+2020/03/03
+- Correct min/max values
+- Ensure that UI is refreshed at every file resizing, to get a correct display of the progress bar
+- Display filename and operation type inside the progress bar
+- Use the progress bar when dropping files
+
+2020/03/07
+- Huge rework, engine fully redesigned. Use of separate threads to import and resize pictures, while UI stays in its own thread
+- Reworked UI too
+- This commit contains a working version of the drop thread, for local and remote files
+- Nothing done for the resize thread at this point
+- Still some bugs pending (no actual size displayed for example).
+
+2020/03/07
+- use lambda function instead of method pointer for signal connections in DlgErrorList constructor
+- reworked UI to simplify it, make it more consistent and give more info
+- select resizing method depending on resizing value
+- add item count to Clear Table button
+- prevent to add a file in the table twice
+
+2020/03/07
+- update comments and presentation
+
+2020/03/07
+- fix a bug that allowed file duplication in the table
+- fix the bug that prevented to display original sizes in the table
+- added GPL3 license
+
+2020/03/08
+- added Help dialog with Readme, License and Changelog
+- allocate DlgErrorList on the heap and not on the stack to follow Qt guidelines
+
+2020/03/09
+- set a global window title
+- updated all dialogs/message boxes to use the global title
+- wrote resizing thread
+- progress bar values are now handled by the updateUI() method
+- use argv*[] instead of argv** to comply with Qt's defaults
+- prevent to drop while resizing
+- store org size and new size informations as QVariant in the Table
+- use references to org/new size (QSize) when computing new picture dimensions
+
+2020/03/09
+- overload closeEvent to allow proper program termination when a thread is running
+
+2020/03/09
+- renamed some variables for consistency

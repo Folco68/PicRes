@@ -10,7 +10,7 @@
 + set a license
 + put Clear Table button in the dropbox box
 + additional dialog to say that resized pictures will overwrite original ones
-- name consistency, comments etc...
++ name consistency, comments etc...
 + delete resizing worker instance
 + check corresponding resize method when modifying spinbox
 + fix org size display
