@@ -22,6 +22,8 @@
 #include "DlgErrorList.hpp"
 #include "DlgHelp.hpp"
 #include "DropThread.hpp"
+#include "Global.hpp"
+#include "ResizeThread.hpp"
 #include "TableItem.hpp"
 #include "ui_MainWindow.h"
 #include <QAbstractItemView>
@@ -40,16 +42,14 @@
 // Constructor
 //
 
-MainWindow::MainWindow(int argc, char** argv)
-    : ui(new Ui::MainWindow)
-    , Table(new QTableWidget)
-    , SupportedExtensionList(QImageReader::supportedImageFormats())
+MainWindow::MainWindow(int argc, char* argv[]) : ui(new Ui::MainWindow), Table(new QTableWidget), SupportedExtensionList(QImageReader::supportedImageFormats())
 {
     //
     //  UI
     //
 
     ui->setupUi(this);
+    setWindowTitle(tr(MAIN_WINDOW_TITLE));
 
     // Align some widgets
     centralWidget()->layout()->setAlignment(ui->ButtonResize, Qt::AlignHCenter);
@@ -117,10 +117,15 @@ MainWindow::MainWindow(int argc, char** argv)
     // connect(ui->BoxDrop, &Dropbox::picturesDropped, this, &MainWindow::onPicturesDropped);
     connect(ui->BoxDrop, &Dropbox::picturesDropped, [this](QList<QUrl> URLs) { onPicturesDropped(URLs); });
 
-    // Connect dropping worker to main UI. Queued connections needed because of the different threads
+    // Connect drop thread to main UI. Queued connections needed because of the different threads
     connect(DropThread::instance(), &DropThread::dropResultReady, this, &MainWindow::onDropResultReady, Qt::QueuedConnection);
     connect(DropThread::instance(), &DropThread::processingDroppedFile, this, &MainWindow::onDroppedFileProcessed, Qt::QueuedConnection);
     connect(DropThread::instance(), &DropThread::dropProcessTerminaded, this, &MainWindow::onDropProcessTerminated, Qt::QueuedConnection);
+
+    // Connect resize thread to main UI. Queued connections needed because of the different threads
+    connect(ResizeThread::instance(), &ResizeThread::resizingFile, this, &MainWindow::onFileResizing, Qt::QueuedConnection);
+    connect(ResizeThread::instance(), &ResizeThread::fileResized, this, &MainWindow::onFileResized, Qt::QueuedConnection);
+    connect(ResizeThread::instance(), &ResizeThread::resizingTerminated, this, &MainWindow::onResizingTerminated, Qt::QueuedConnection);
 
     // If files were dropped on the program icon, add them to the UI
     if (argc != 1) {
@@ -155,87 +160,30 @@ MainWindow::~MainWindow()
 void MainWindow::updateUI()
 {
     // Shortcuts for common properties
-    int ItemCount            = this->Table->rowCount();
-    bool TableIsEmpty        = ItemCount == 0;
+    int ItemCount              = this->Table->rowCount();
+    bool TableIsEmpty          = ItemCount == 0;
     bool DropThreadIsRunning = DropThread::instance()->isRunning();
+    bool ResizeThreadIsRunning = ResizeThread::instance()->isRunning();
+    bool AThreadIsRunning      = DropThreadIsRunning || ResizeThreadIsRunning;
 
-    ui->ProgressBar->setVisible(DropThreadIsRunning);                       // Progress bar is visible if files are currently dropped
-    ui->LabelDrop->setVisible(TableIsEmpty && !DropThreadIsRunning);        // Hint label is displayed if the table is empty and no process running
-    this->Table->setVisible(!TableIsEmpty);                                 // Table is displayed if it contains elements
-    ui->RadioPercentage->setDisabled(TableIsEmpty);                         // Resizing methods are disabled if the table is empty
-    ui->RadioAbsoluteSize->setDisabled(TableIsEmpty);                       // Resizing methods are disabled if the table is empty
-    ui->SpinboxPercentage->setDisabled(TableIsEmpty);                       // Resizing methods are disabled if the table is empty
-    ui->SpinboxAbsoluteSize->setDisabled(TableIsEmpty);                     // Resizing methods are disabled if the table is empty
-    ui->ButtonClearList->setVisible(!TableIsEmpty && !DropThreadIsRunning); // Can't clear the list if it's empty or in use
-    ui->ButtonCancel->setVisible(DropThreadIsRunning);                      // Cancel button is visible only if a process is running
-    ui->ButtonResize->setEnabled(!TableIsEmpty && !DropThreadIsRunning);    // We can resize when there is something to resize and drop process is complete
-    ui->ButtonClearList->setText(tr("Clear list (%1 items)").arg(ItemCount)); // Display the size of the table in the Clear button
+    ui->ProgressBar->setVisible(AThreadIsRunning);                               // Progress bar is visible if files are currently dropped
+    ui->LabelDrop->setVisible(TableIsEmpty && !AThreadIsRunning);                // Hint label is displayed if the table is empty and no process running
+    this->Table->setVisible(!TableIsEmpty);                                      // Table is displayed if it contains elements
+    ui->RadioPercentage->setDisabled(TableIsEmpty || ResizeThreadIsRunning);     // Resizing methods are disabled if the table is empty
+    ui->RadioAbsoluteSize->setDisabled(TableIsEmpty || ResizeThreadIsRunning);   // Resizing methods are disabled if the table is empty
+    ui->SpinboxPercentage->setDisabled(TableIsEmpty || ResizeThreadIsRunning);   // Resizing methods are disabled if the table is empty
+    ui->SpinboxAbsoluteSize->setDisabled(TableIsEmpty || ResizeThreadIsRunning); // Resizing methods are disabled if the table is empty
+    ui->ButtonClearList->setVisible(!TableIsEmpty && !AThreadIsRunning);         // Can't clear the list if it's empty or in use
+    ui->ButtonCancel->setVisible(AThreadIsRunning);                              // Cancel button is visible only if a process is running
+    ui->ButtonResize->setEnabled(!TableIsEmpty && !AThreadIsRunning);            // We can resize when there is something to resize and no thread is working
+    ui->ButtonClearList->setText(tr("Clear list (%1 items)").arg(ItemCount));    // Display the size of the table in the Clear button
+
+    // Reset progress bar if no thread is running
+    if (!AThreadIsRunning) {
+        ui->ProgressBar->setMaximum(0);
+        ui->ProgressBar->setValue(0);
+    }
 }
-
-//
-//  onButtonResizeClicked
-//
-// Called when the user wants to resize the files displayed in the table
-//
-
-void MainWindow::onButtonResizeClicked()
-{
-    /*
-    // Show and set the progress bar
-    ui->ProgressBar->setVisible(true);
-    ui->ProgressBar->setRange(0, Table->rowCount());
-    ui->ProgressBar->reset();
-
-    // List of filename that couldn't be resized
-    QStringList InvalidFiles;
-
-    // Resize images
-    for (int i = 0; i < Table->rowCount(); i++) {
-        // Get filename
-        QString Filename = Table->item(i, COLUMN_FILENAME)->data(Qt::DisplayRole).toString();
-
-        // Refresh progress bar
-        ui->ProgressBar->setValue(i + 1);
-        ui->ProgressBar->setFormat(tr("Resizing file: %1 (%p%)").arg(Filename));
-
-        // Open image
-        QImage Image(Filename);
-
-        // Get dimensions and update them
-        int Width  = Table->item(i, COLUMN_WIDTH)->data(Qt::DisplayRole).toInt();
-        int Height = Table->item(i, COLUMN_HEIGHT)->data(Qt::DisplayRole).toInt();
-        updateSize(Width, Height);
-
-        // Resize the image
-        QImage ResizedImage = Image.scaled(Width, Height, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        if (ResizedImage.isNull()) {
-            InvalidFiles << Filename;
-            continue;
-        }
-
-        // Save the image
-        if (!ResizedImage.save(Filename)) {
-            InvalidFiles << Filename;
-        }
-    }
-
-    // Display the success message if all was fine
-    if (InvalidFiles.isEmpty()) {
-        QMessageBox::information(
-                    this,
-                    "PicRes",
-                    tr("Resizing successful!"));
-    }
-    else {
-        DlgErrorList Dialog(tr("Some files couldn't be resized:"), InvalidFiles);
-        Dialog.exec();
-    }
-
-    // Clear the table and reset the UI
-    clearTable();
-*/
-}
-
 
 //
 //  onPicturesDropped
@@ -245,6 +193,12 @@ void MainWindow::onButtonResizeClicked()
 
 void MainWindow::onPicturesDropped(QList<QUrl> URLs)
 {
+    // Prevent drops during resizing
+    if (ResizeThread::instance()->isRunning()) {
+        QMessageBox::critical(this, MAIN_WINDOW_TITLE, tr("Cannot drop files while resizing."), QMessageBox::Ok);
+        return;
+    }
+
     DropThread::instance()->drop(URLs);
     ui->ProgressBar->setMaximum(ui->ProgressBar->maximum() + URLs.count());
     updateUI();
@@ -264,7 +218,7 @@ void MainWindow::onDropResultReady()
 
     for (int i = 0; i < result.size(); i++) {
         QString filename = result.at(i).first;
-        QSize size       = result.at(i).second;
+        QSize orgsize    = result.at(i).second;
 
         // Check that the file is not added yet. If so, discard it without any warning message
         bool AlreadyPresent = false;
@@ -279,17 +233,20 @@ void MainWindow::onDropResultReady()
         }
 
         // Add the file to the table if it could be read, else add it to the error list
-        if (size.isValid()) {
+        if (orgsize.isValid()) {
             // Compute new size
-            int NewWidth  = size.width();
-            int NewHeight = size.height();
-            updateSize(NewWidth, NewHeight);
+            QSize newsize;
+            updateSize(orgsize, newsize);
 
             // Create the items to add. Use a QTableWidgetItem for the filename, because we don't want it to be centered
+            // Store related data in dedicated locations
             QTableWidgetItem* ItemName = new QTableWidgetItem(filename);
-            TableItem* ItemOrgSize     = new TableItem(QString("%1 x %2").arg(size.width()).arg(size.height()));
-            TableItem* ItemNewSize     = new TableItem(QString("%1 x %2").arg(NewWidth).arg(NewHeight));
-            ItemOrgSize->setData(Qt::UserRole, QVariant::fromValue(size));
+
+            TableItem* ItemOrgSize = new TableItem(QString("%1 x %2").arg(orgsize.width()).arg(orgsize.height()));
+            ItemOrgSize->setData(Qt::UserRole, QVariant::fromValue(orgsize));
+
+            TableItem* ItemNewSize = new TableItem(QString("%1 x %2").arg(newsize.width()).arg(newsize.height()));
+            ItemNewSize->setData(Qt::UserRole, QVariant::fromValue(newsize));
 
             // Populate the table
             int row = this->Table->rowCount();
@@ -330,32 +287,80 @@ void MainWindow::onDroppedFileProcessed(QString filename)
 
 void MainWindow::onDropProcessTerminated()
 {
-    // Reset progress bar and update UI
-    ui->ProgressBar->setMaximum(0);
-    updateUI();
-
     // Display invalid files if a problem occured, then clear the list
     if (!this->InvalidDroppedFiles.isEmpty()) {
         DlgErrorList::openDlgErrorList(tr("Some files couldn't be opened:"), this->InvalidDroppedFiles, this);
         this->InvalidDroppedFiles.clear();
     }
+
+    updateUI();
 }
 
 //
-//  updateAllSizes
+//  onButtonResizeClicked
 //
-// Compute and display the new picture sizes, depending on the current resizing method
+// Called when the user wants to resize the files displayed in the table
 //
 
-void MainWindow::updateAllSizes()
+void MainWindow::onButtonResizeClicked()
 {
+    QMessageBox::warning(this, MAIN_WINDOW_TITLE, tr("Original pictures will be overwritten. Do you want to continue?"), QMessageBox::Yes | QMessageBox::No);
+
+    // Build the list of files to resize
+    QList<QPair<QString, QSize>> files;
     for (int i = 0; i < this->Table->rowCount(); i++) {
-        QSize size = this->Table->item(i, COLUMN_ORGSIZE)->data(Qt::UserRole).toSize();
-        int width  = size.width();
-        int height = size.height();
-        updateSize(width, height);
-        Table->item(i, COLUMN_NEWSIZE)->setText(QString("%1 x %2").arg(width).arg(height));
+        QString filename = this->Table->item(i, COLUMN_FILENAME)->text();
+        QSize size       = this->Table->item(i, COLUMN_NEWSIZE)->data(Qt::UserRole).toSize();
+        files << QPair<QString, QSize>(filename, size);
     }
+
+    // Start the thread and set UI
+    ResizeThread::instance()->resize(files);
+    ui->ProgressBar->setMaximum(this->Table->rowCount());
+    updateUI();
+}
+
+//
+//  onFileResizing
+//
+// Triggered when the resizer thread starts to process a file. Update UI according to
+//
+
+void MainWindow::onFileResizing(QString filename)
+{
+    // Display file related information in the progress bar
+    ui->ProgressBar->setValue(ui->ProgressBar->value() + 1);
+    ui->ProgressBar->setFormat(QString("%1 (%p%)").arg(filename));
+}
+
+//
+//  onFileResized
+//
+// Triggered when a file has been processed
+//
+
+void MainWindow::onFileResized()
+{
+    this->Table->removeRow(0);
+}
+
+//
+//  onResizingTerminated
+//
+// Triggered when all files have been resized. Display a dialog to inform the user about operation success
+//
+
+void MainWindow::onResizingTerminated()
+{
+    QStringList files = ResizeThread::instance()->invalidFiles();
+    if (files.isEmpty()) {
+        QMessageBox::information(this, MAIN_WINDOW_TITLE, tr("All files successfully resized!"), QMessageBox::Ok);
+    }
+    else {
+        DlgErrorList::openDlgErrorList(tr("Some files couldn't be resized"), files, this);
+    }
+
+    updateUI();
 }
 
 //
@@ -383,35 +388,52 @@ void MainWindow::onAbsoluteValueChanged()
 }
 
 //
+//  updateAllSizes
+//
+// Compute and display the new picture sizes, depending on the current resizing method
+//
+
+void MainWindow::updateAllSizes()
+{
+    for (int i = 0; i < this->Table->rowCount(); i++) {
+        QSize orgsize = this->Table->item(i, COLUMN_ORGSIZE)->data(Qt::UserRole).toSize();
+        QSize newsize;
+        updateSize(orgsize, newsize);
+        this->Table->item(i, COLUMN_NEWSIZE)->setText(QString("%1 x %2").arg(newsize.width()).arg(newsize.height()));
+        this->Table->item(i, COLUMN_NEWSIZE)->setData(Qt::UserRole, QVariant::fromValue(newsize));
+    }
+}
+
+//
 //  updateSize
 //
 // Update the given size according to the selected resizing method
 //
 
-void MainWindow::updateSize(int& width, int& height)
+void MainWindow::updateSize(QSize& orgsize, QSize& newsize)
 {
     // Percentage method selected
     if (ui->RadioPercentage->isChecked()) {
         int Percentage = ui->SpinboxPercentage->value();
-        width = (width * Percentage) / 100;
-        height = (height * Percentage) / 100;
+        newsize.setWidth((orgsize.width() * Percentage) / 100);
+        newsize.setHeight((orgsize.height() * Percentage) / 100);
     }
     // Absolute Size method selected
     else {
         int MaxSize = ui->SpinboxAbsoluteSize->value();
-        if (width > height) {
-            height = (height * MaxSize) / width;
-            width = MaxSize;
+        if (orgsize.width() > orgsize.height()) {
+            newsize.setHeight((orgsize.height() * MaxSize) / orgsize.width());
+            newsize.setWidth(MaxSize);
         }
         else {
-            width = (width * MaxSize) / height;
-            height = MaxSize;
+            newsize.setWidth((orgsize.width() * MaxSize) / orgsize.height());
+            newsize.setHeight(MaxSize);
         }
     }
 
     // Prevent from getting a null size
-    width = max(width, 1);
-    height = max(height, 1);
+    newsize.setWidth(max(newsize.width(), 1));
+    newsize.setHeight(max(newsize.height(), 1));
 }
 
 //
@@ -430,12 +452,16 @@ void MainWindow::clearTable()
 //
 //  cancelTask
 //
-// Slot triggere when the user wants to interrupt the dropping or resizing thread
+// Slot triggered when the user wants to interrupt the dropping or resizing thread
 //
 
 void MainWindow::cancelTask()
 {
     if (DropThread::instance()->isRunning()) {
         DropThread::instance()->requestInterruption();
+    }
+
+    if (ResizeThread::instance()->isRunning()) {
+        ResizeThread::instance()->requestInterruption();
     }
 }

@@ -19,6 +19,7 @@
  */
 
 #include "DlgHelp.hpp"
+#include "Global.hpp"
 #include "ui_DlgHelp.h"
 #include <QFile>
 #include <QPushButton>
@@ -30,6 +31,7 @@ DlgHelp::DlgHelp(QWidget* parent) : QDialog(parent), ui(new Ui::DlgHelp)
     ui->setupUi(this);
     ui->VLayoutMain->setAlignment(ui->ButtonClose, Qt::AlignRight); // Put the Close button on the right side
     ui->TabWidget->setCurrentIndex(0);                              // Ensure that the active tab is the firt one
+    setWindowTitle(MAIN_WINDOW_TITLE);
 
     // Load texts
     QFile FileReadme(":/Readme.txt");

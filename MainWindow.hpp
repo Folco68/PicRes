@@ -24,6 +24,7 @@
 #include <QByteArray>
 #include <QList>
 #include <QMainWindow>
+#include <QSize>
 #include <QStringList>
 #include <QTableWidget>
 #include <QUrl>
@@ -43,7 +44,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(int argc, char** argv);
+    MainWindow(int argc, char* argv[]);
     ~MainWindow();
 
 private:
@@ -53,9 +54,9 @@ private:
     QList<QByteArray> SupportedExtensionList; // List of supported picture extension
     QStringList InvalidDroppedFiles;          // Files that cannot be processed when they are dropped into the UI
 
-    void updateSize(int& width, int& height); // Compute the new dimensions of a picture, according to the selected resizing method
-    void updateAllSizes();                    // Update sizes displayed in the table
-    void updateUI();                          // Update UI, depending on program state
+    void updateSize(QSize& orgsize, QSize& newsize); // Compute the new dimensions of a picture, according to the selected resizing method
+    void updateAllSizes();                           // Update sizes displayed in the table
+    void updateUI();                                 // Update UI, depending on program state
 
     // Slots linked to UI
     void clearTable();                        // Remove all entries imported in the main table
@@ -67,9 +68,12 @@ private:
     void onAbsoluteValueChanged();            // Called when resizing values change, to update new sizes
 
     // Slots linked to drop thread
-    void onDropResultReady();                      // Says to the main window that data of a picture is ready to use
-    void onDroppedFileProcessed(QString filename); // Emitted when processed file changes
-    void onDropProcessTerminated();                // Says to the main window that all dropped files have been processed
+    void onDropResultReady();                      // Triggered when picture data is ready to use
+    void onDroppedFileProcessed(QString filename); // Triggered when processed file changes
+    void onDropProcessTerminated();                // Triggered when all dropped files have been handled
+    void onFileResizing(QString filename);         // Triggered when a file resizing starts
+    void onFileResized();                          // Triggered when a file have been resized
+    void onResizingTerminated();                   // Triggered when resizing of all files is done
 };
 
 //

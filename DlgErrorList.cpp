@@ -19,6 +19,7 @@
  */
 
 #include "DlgErrorList.hpp"
+#include "Global.hpp"
 #include "ui_DlgErrorList.h"
 #include <QPushButton>
 
@@ -36,6 +37,7 @@ DlgErrorList::DlgErrorList(QString message, QStringList filenames, QWidget* pare
     ui->verticalLayout->setAlignment(ui->ButtonOk, Qt::AlignHCenter); // Center the OK button
     ui->ListInvalidFiles->addItems(filenames);                        // Add filenames to the list
     setMinimumSize(size().width() * 2, size().height());              // Tweak the horizontal size to avoid a scrollable list widget
+    setWindowTitle(MAIN_WINDOW_TITLE);
 
     // Connection
     connect(ui->ButtonOk, &QPushButton::clicked, [this]() { accept(); }); // Connect the Ok button to close the dialog
