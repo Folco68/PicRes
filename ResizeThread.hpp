@@ -33,7 +33,7 @@ class ResizeThread : public QThread
 
 public:
     static ResizeThread* instance();                 // Return a pointer to the object instance. Create the instance if needed
-    void resize(QList<QPair<QString, QSize>> Files); // Called when the Resize button is clicked
+    void resize(QList<QPair<QString, QSize>> files); // Called when the Resize button is clicked
     QStringList invalidFiles() const;
 
 private:

@@ -115,10 +115,10 @@ void DropThread::run()
 // Support empty result list, because process and UI are asynchroneous
 //
 
-void DropThread::result(QList<QPair<QString, QSize>>* Result)
+void DropThread::result(QList<QPair<QString, QSize>>* result)
 {
     this->MutexResult.lock();
-    *Result = this->Result;     // Available results are copied into the caller variable
+    *result = this->Result;     // Available results are copied into the caller variable
     this->Result.clear();       // And discarded from this object
     this->MutexResult.unlock(); //
 }

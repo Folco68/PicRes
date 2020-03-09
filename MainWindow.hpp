@@ -46,7 +46,7 @@ class MainWindow : public QMainWindow
 
 public:
     MainWindow(int argc, char* argv[]);
-    ~MainWindow();
+    ~MainWindow() override;
 
 private:
     // UI

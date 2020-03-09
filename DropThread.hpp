@@ -41,7 +41,7 @@ class DropThread : public QThread
 public:
     static DropThread* instance();                     // Return a ptr to the object instance; create it if needed
     void drop(QList<QUrl> URLs);                       // Called when the main UI receives files
-    void result(QList<QPair<QString, QSize>>* Result); // Gives the result processed by the worker thread
+    void result(QList<QPair<QString, QSize>>* result); // Gives the result processed by the worker thread
 
 private:
     void run() override; // Worker

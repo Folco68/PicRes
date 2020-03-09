@@ -214,17 +214,17 @@ void MainWindow::onPicturesDropped(QList<QUrl> URLs)
 
 void MainWindow::onDropResultReady()
 {
-    QList<QPair<QString, QSize>> result;
-    DropThread::instance()->result(&result);
+    QList<QPair<QString, QSize>> Result;
+    DropThread::instance()->result(&Result);
 
-    for (int i = 0; i < result.size(); i++) {
-        QString filename = result.at(i).first;
-        QSize orgsize    = result.at(i).second;
+    for (int i = 0; i < Result.size(); i++) {
+        QString Filename = Result.at(i).first;
+        QSize OrgSize    = Result.at(i).second;
 
         // Check that the file is not added yet. If so, discard it without any warning message
         bool AlreadyPresent = false;
         for (int i = 0; i < this->Table->rowCount(); i++) {
-            if (filename == this->Table->item(i, COLUMN_FILENAME)->text()) {
+            if (Filename == this->Table->item(i, COLUMN_FILENAME)->text()) {
                 AlreadyPresent = true;
                 break;
             }
@@ -234,20 +234,20 @@ void MainWindow::onDropResultReady()
         }
 
         // Add the file to the table if it could be read, else add it to the error list
-        if (orgsize.isValid()) {
+        if (OrgSize.isValid()) {
             // Compute new size
-            QSize newsize;
-            updateSize(orgsize, newsize);
+            QSize NewSize;
+            updateSize(OrgSize, NewSize);
 
             // Create the items to add. Use a QTableWidgetItem for the filename, because we don't want it to be centered
             // Store related data in dedicated locations
-            QTableWidgetItem* ItemName = new QTableWidgetItem(filename);
+            QTableWidgetItem* ItemName = new QTableWidgetItem(Filename);
 
-            TableItem* ItemOrgSize = new TableItem(QString("%1 x %2").arg(orgsize.width()).arg(orgsize.height()));
-            ItemOrgSize->setData(Qt::UserRole, QVariant::fromValue(orgsize));
+            TableItem* ItemOrgSize = new TableItem(QString("%1 x %2").arg(OrgSize.width()).arg(OrgSize.height()));
+            ItemOrgSize->setData(Qt::UserRole, QVariant::fromValue(OrgSize));
 
-            TableItem* ItemNewSize = new TableItem(QString("%1 x %2").arg(newsize.width()).arg(newsize.height()));
-            ItemNewSize->setData(Qt::UserRole, QVariant::fromValue(newsize));
+            TableItem* ItemNewSize = new TableItem(QString("%1 x %2").arg(NewSize.width()).arg(NewSize.height()));
+            ItemNewSize->setData(Qt::UserRole, QVariant::fromValue(NewSize));
 
             // Populate the table
             int row = this->Table->rowCount();
@@ -257,12 +257,12 @@ void MainWindow::onDropResultReady()
             this->Table->setItem(row, COLUMN_NEWSIZE, ItemNewSize);
         }
         else {
-            this->InvalidDroppedFiles << filename;
+            this->InvalidDroppedFiles << Filename;
         }
     }
 
     // Update UI only if the list contains data
-    if (result.count() != 0) {
+    if (Result.count() != 0) {
         updateUI();
     }
 }
@@ -308,15 +308,15 @@ void MainWindow::onButtonResizeClicked()
     QMessageBox::warning(this, MAIN_WINDOW_TITLE, tr("Original pictures will be overwritten. Do you want to continue?"), QMessageBox::Yes | QMessageBox::No);
 
     // Build the list of files to resize
-    QList<QPair<QString, QSize>> files;
+    QList<QPair<QString, QSize>> Files;
     for (int i = 0; i < this->Table->rowCount(); i++) {
-        QString filename = this->Table->item(i, COLUMN_FILENAME)->text();
-        QSize size       = this->Table->item(i, COLUMN_NEWSIZE)->data(Qt::UserRole).toSize();
-        files << QPair<QString, QSize>(filename, size);
+        QString Filename = this->Table->item(i, COLUMN_FILENAME)->text();
+        QSize Size       = this->Table->item(i, COLUMN_NEWSIZE)->data(Qt::UserRole).toSize();
+        Files << QPair<QString, QSize>(Filename, Size);
     }
 
     // Start the thread and set UI
-    ResizeThread::instance()->resize(files);
+    ResizeThread::instance()->resize(Files);
     ui->ProgressBar->setMaximum(this->Table->rowCount());
     updateUI();
 }
@@ -400,11 +400,11 @@ void MainWindow::onAbsoluteValueChanged()
 void MainWindow::updateAllSizes()
 {
     for (int i = 0; i < this->Table->rowCount(); i++) {
-        QSize orgsize = this->Table->item(i, COLUMN_ORGSIZE)->data(Qt::UserRole).toSize();
-        QSize newsize;
-        updateSize(orgsize, newsize);
-        this->Table->item(i, COLUMN_NEWSIZE)->setText(QString("%1 x %2").arg(newsize.width()).arg(newsize.height()));
-        this->Table->item(i, COLUMN_NEWSIZE)->setData(Qt::UserRole, QVariant::fromValue(newsize));
+        QSize OrgSize = this->Table->item(i, COLUMN_ORGSIZE)->data(Qt::UserRole).toSize();
+        QSize NewSize;
+        updateSize(OrgSize, NewSize);
+        this->Table->item(i, COLUMN_NEWSIZE)->setText(QString("%1 x %2").arg(NewSize.width()).arg(NewSize.height()));
+        this->Table->item(i, COLUMN_NEWSIZE)->setData(Qt::UserRole, QVariant::fromValue(NewSize));
     }
 }
 
@@ -479,8 +479,8 @@ void MainWindow::cancelTask()
 void MainWindow::closeEvent(QCloseEvent* event)
 {
     if (DropThread::instance()->isRunning() || ResizeThread::instance()->isRunning()) {
-        auto answer = QMessageBox::question(this, MAIN_WINDOW_TITLE, tr("Do you want to interrupt current process ?"), QMessageBox::Yes | QMessageBox::No);
-        if (answer == QMessageBox::Yes) {
+        auto Answer = QMessageBox::question(this, MAIN_WINDOW_TITLE, tr("Do you want to interrupt current process ?"), QMessageBox::Yes | QMessageBox::No);
+        if (Answer == QMessageBox::Yes) {
             // Request interruption of both thread, don't care about which one is running
             DropThread::instance()->requestInterruption();
             ResizeThread::instance()->requestInterruption();
