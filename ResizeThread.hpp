@@ -47,6 +47,7 @@ signals:
     void resizingFile(QString filename); // Emitted the name of the file whose resizing process starts
     void fileResized();                  // Emitted when a file resizing is terminated (successfully or not)
     void resizingTerminated();           // Emitted when all files have been resized-+
+    void resizingAborted();              // Emitted if resizing process is aborted
 };
 
 #endif // RESIZETHREAD_HPP

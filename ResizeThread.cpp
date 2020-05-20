@@ -69,8 +69,13 @@ void ResizeThread::run()
         }
     }
 
-    // Tell the UI that all files have been processed
-    emit resizingTerminated();
+    // Tell the UI that process is terminated
+    if (isInterruptionRequested()) {
+        emit resizingAborted();
+    }
+    else {
+        emit resizingTerminated();
+    }
 }
 
 QStringList ResizeThread::invalidFiles() const

@@ -28,6 +28,8 @@
 #include "ui_MainWindow.h"
 #include <QAbstractItemView>
 #include <QCoreApplication>
+#include <QDir>
+#include <QFileInfo>
 #include <QHeaderView>
 #include <QImageReader>
 #include <QMessageBox>
@@ -127,6 +129,7 @@ MainWindow::MainWindow(int argc, char* argv[])
     connect(ResizeThread::instance(), &ResizeThread::resizingFile, this, &MainWindow::onFileResizing, Qt::QueuedConnection);
     connect(ResizeThread::instance(), &ResizeThread::fileResized, this, &MainWindow::onFileResized, Qt::QueuedConnection);
     connect(ResizeThread::instance(), &ResizeThread::resizingTerminated, this, &MainWindow::onResizingTerminated, Qt::QueuedConnection);
+    connect(ResizeThread::instance(), &ResizeThread::resizingAborted, this, &MainWindow::onResizingAborted, Qt::QueuedConnection);
 
     // If files were dropped on the program icon, add them to the UI
     if (argc != 1) {
@@ -192,7 +195,7 @@ void MainWindow::updateUI()
 // Slot triggered when files are dropped in the drop box
 //
 
-void MainWindow::onPicturesDropped(QList<QUrl> URLs)
+void MainWindow::onPicturesDropped(QList<QUrl> url)
 {
     // Prevent drops during resizing
     if (ResizeThread::instance()->isRunning()) {
@@ -200,9 +203,38 @@ void MainWindow::onPicturesDropped(QList<QUrl> URLs)
         return;
     }
 
-    DropThread::instance()->drop(URLs);
-    ui->ProgressBar->setMaximum(ui->ProgressBar->maximum() + URLs.count());
+    QList<QUrl> FileUrl;
+    for (int i = 0; i < url.count(); i++) {
+        QString Filename = url.at(i).toLocalFile();
+        QFileInfo Info(Filename);
+        if (Info.isFile()) {
+            FileUrl << url.at(i);
+        }
+        else if (Info.isDir()) {
+            getFiles(FileUrl, url.at(i));
+        }
+    }
+
+    DropThread::instance()->drop(FileUrl);
+
+    ui->ProgressBar->setMaximum(ui->ProgressBar->maximum() + FileUrl.count());
     updateUI();
+}
+
+void MainWindow::getFiles(QList<QUrl>& list, QUrl dirurl) const
+{
+    QDir directory(dirurl.toLocalFile());
+    QFileInfoList InfoList(directory.entryInfoList(QDir::AllEntries | QDir::NoDot | QDir::NoDotDot, QDir::Name | QDir::DirsFirst));
+
+    for (int i = 0; i < InfoList.count(); i++) {
+        QUrl URL(QUrl::fromLocalFile(InfoList.at(i).absoluteFilePath()));
+        if (InfoList.at(i).isFile()) {
+            list.append(URL);
+        }
+        else {
+            getFiles(list, URL);
+        }
+    }
 }
 
 //
@@ -361,6 +393,28 @@ void MainWindow::onResizingTerminated()
         }
         else {
             DlgErrorList::openDlgErrorList(tr("Some files couldn't be resized"), files, this);
+        }
+
+        updateUI();
+    }
+}
+
+//
+//  onResizingAborted
+//
+// Triggered when resizing process has been aborted
+// Don't display anything if the user wants to close the program while a process is running
+//
+
+void MainWindow::onResizingAborted()
+{
+    if (!this->CloseRequested) {
+        QStringList files = ResizeThread::instance()->invalidFiles();
+        if (files.isEmpty()) {
+            QMessageBox::warning(this, MAIN_WINDOW_TITLE, tr("Resizing process interrupted by user."), QMessageBox::Ok);
+        }
+        else {
+            DlgErrorList::openDlgErrorList(tr("Resizing process interrupted by user. Some files couldn't be resized."), files, this);
         }
 
         updateUI();

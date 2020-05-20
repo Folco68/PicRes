@@ -1,5 +1,5 @@
 PicRes by Martial Demolins
-Version: 2.0
+Version: 2.1
 License: GPL v3+ (https://www.gnu.org/licenses/gpl-3.0.txt)
 Source + download page: https://github.com/Folcogh/PicRes (or, for TP users, \Partage_Techniciens\Demolins\Softs\PicRes)
 Bug reports and suggestions: martial <dot> demolins <at> gmail <dot> com

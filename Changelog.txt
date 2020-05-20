@@ -54,3 +54,8 @@
 
 2020/03/09
 - renamed some variables for consistency
+
+2020/05/20
+- add the ability to drop folders (files are added recursively)
+- emit a new signal when aborting a process, allowing to close the program without popping a dialog about current process
+

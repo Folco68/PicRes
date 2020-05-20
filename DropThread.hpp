@@ -44,7 +44,7 @@ public:
     void result(QList<QPair<QString, QSize>>* result); // Gives the result processed by the worker thread
 
 private:
-    void run() override; // Worker
+    void run() override;               // Worker
 
     static DropThread* dropthread;       // Singleton pointer
     QList<QUrl> Queue;                   // Store the URLs dropped into the UI

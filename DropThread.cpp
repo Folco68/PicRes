@@ -51,7 +51,7 @@ DropThread* DropThread::instance()
 
 void DropThread::drop(QList<QUrl> URLs)
 {
-    // Add the new URLs to the queue when it's available
+    // Add the new URLs to the queue
     this->MutexQueue.lock();
     this->Queue << URLs;
     this->MutexQueue.unlock();
@@ -85,7 +85,7 @@ void DropThread::run()
         this->MutexQueue.unlock();
         QString filename(url.toLocalFile());
 
-        // Emit a signal to say to the main UI which file is being processed²
+        // Emit a signal to say to the main UI which file is being processed
         emit processingDroppedFile(filename);
 
         // Add the picture filename and its size to the result list. Size is invalid if the picture couldn't be read

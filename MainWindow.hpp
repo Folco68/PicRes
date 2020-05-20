@@ -56,17 +56,18 @@ private:
     QStringList InvalidDroppedFiles;          // Files that cannot be processed when they are dropped into the UI
     bool CloseRequested;                      // True if close is requested, preventing some dialogs to pop up
 
-    void updateSize(QSize& orgsize, QSize& newsize); // Compute the new dimensions of a picture, according to the selected resizing method
-    void updateAllSizes();                           // Update sizes displayed in the table
-    void updateUI();                                 // Update UI, depending on program state
-    void closeEvent(QCloseEvent* event) override;    // Intercept close event to allow program termination while a thread is running
+    void updateSize(QSize& orgsize, QSize& newsize);     // Compute the new dimensions of a picture, according to the selected resizing method
+    void updateAllSizes();                               // Update sizes displayed in the table
+    void updateUI();                                     // Update UI, depending on program state
+    void closeEvent(QCloseEvent* event) override;        // Intercept close event to allow program termination while a thread is running
+    void getFiles(QList<QUrl>& list, QUrl dirurl) const; // Return the list of the files contained in a directory
 
     // Slots linked to UI
     void clearTable();                        // Remove all entries imported in the main table
     void cancelTask();                        // Cancel on the flight file dropping or resizing
     void onResizingMethodChanged();           // Called when resizing method changes, to refresh new sizes
     void onButtonResizeClicked();             // Start the main worker of this program
-    void onPicturesDropped(QList<QUrl> URLs); // Called when the UI receives files
+    void onPicturesDropped(QList<QUrl> url);  // Called when the UI receives files
     void onPercentageValueChanged();          // Called when resizing values change, to update new sizes
     void onAbsoluteValueChanged();            // Called when resizing values change, to update new sizes
 
@@ -77,6 +78,7 @@ private:
     void onFileResizing(QString filename);         // Triggered when a file resizing starts
     void onFileResized();                          // Triggered when a file have been resized
     void onResizingTerminated();                   // Triggered when resizing of all files is done
+    void onResizingAborted();                      // Trigerred when the resizing process is aborted by user
 };
 
 //
