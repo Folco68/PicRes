@@ -541,7 +541,7 @@ void MainWindow::closeEvent(QCloseEvent* event)
             // Wait until threads have stopped
             while (DropThread::instance()->isRunning() || ResizeThread::instance()->isRunning())
                 ;
-            // Prevent tome dialogs to pop up on exit
+            // Prevent some dialogs to pop up on exit
             this->CloseRequested = true;
             event->accept();
         }
