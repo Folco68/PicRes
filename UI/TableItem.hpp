@@ -1,6 +1,6 @@
 /*
  * PicRes - GUI program to resize pictures in an easy way
- * Copyright (C) 2020 Martial Demolins AKA Folco
+ * Copyright (C) 2020-2025 Martial Demolins AKA Folco
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,26 +18,22 @@
  * mail: martial <dot> demolins <at> gmail <dot> com
  */
 
-#ifndef DLGHELP_HPP
-#define DLGHELP_HPP
+#ifndef TABLEITEM_HPP
+#define TABLEITEM_HPP
 
-#include <QDialog>
+#include <QString>
+#include <QTableWidgetItem>
 
-namespace Ui {
-class DlgHelp;
-}
+//
+//  TableItem
+//
+// This class is a QTableWidgetItem which centers its content
+//
 
-class DlgHelp : public QDialog
+class TableItem: public QTableWidgetItem
 {
-    Q_OBJECT
-
-public:
-    static void openDlgHelp(QWidget* parent);
-
-private:
-    explicit DlgHelp(QWidget* parent);
-    ~DlgHelp();
-    Ui::DlgHelp* ui;
+  public:
+    explicit TableItem(QString text = QString());
 };
 
-#endif // DLGHELP_HPP
+#endif // TABLEITEM_HPP

@@ -1,6 +1,6 @@
 /*
  * PicRes - GUI program to resize pictures in an easy way
- * Copyright (C) 2020 Martial Demolins AKA Folco
+ * Copyright (C) 2020-2025 Martial Demolins AKA Folco
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,11 +19,11 @@
  */
 
 #include "MainWindow.hpp"
+#include "../Core/DropThread.hpp"
+#include "../Core/ResizeThread.hpp"
+#include "../Global.hpp"
 #include "DlgErrorList.hpp"
 #include "DlgHelp.hpp"
-#include "DropThread.hpp"
-#include "Global.hpp"
-#include "ResizeThread.hpp"
 #include "TableItem.hpp"
 #include "ui_MainWindow.h"
 #include <QAbstractItemView>
@@ -35,8 +35,8 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QRadioButton>
-#include <QVBoxLayout>
 #include <QVariant>
+#include <QVBoxLayout>
 
 //
 //  MainWindow
@@ -45,7 +45,10 @@
 //
 
 MainWindow::MainWindow(int argc, char* argv[])
-    : ui(new Ui::MainWindow), Table(new QTableWidget), SupportedExtensionList(QImageReader::supportedImageFormats()), CloseRequested(false)
+    : ui(new Ui::MainWindow)
+    , Table(new QTableWidget)
+    , SupportedExtensionList(QImageReader::supportedImageFormats())
+    , CloseRequested(false)
 {
     //
     //  UI
@@ -133,13 +136,13 @@ MainWindow::MainWindow(int argc, char* argv[])
 
     // If files were dropped on the program icon, add them to the UI
     if (argc != 1) {
-        QList<QUrl> urls;
+        QList<QUrl> Urls;
         for (int i = 1; i < argc; i++) {
-            urls << QUrl::fromLocalFile(argv[i]);
+            Urls << QUrl::fromLocalFile(argv[i]);
         }
 
         // Force file handling
-        onPicturesDropped(urls);
+        onPicturesDropped(Urls);
     }
 }
 
@@ -152,6 +155,8 @@ MainWindow::MainWindow(int argc, char* argv[])
 MainWindow::~MainWindow()
 {
     delete ui;
+    delete DropThread::instance();
+    delete ResizeThread::instance();
 }
 
 //
@@ -164,9 +169,9 @@ MainWindow::~MainWindow()
 void MainWindow::updateUI()
 {
     // Shortcuts for common properties
-    int ItemCount              = this->Table->rowCount();
+    int  ItemCount             = this->Table->rowCount();
     bool TableIsEmpty          = ItemCount == 0;
-    bool DropThreadIsRunning = DropThread::instance()->isRunning();
+    bool DropThreadIsRunning   = DropThread::instance()->isRunning();
     bool ResizeThreadIsRunning = ResizeThread::instance()->isRunning();
     bool AThreadIsRunning      = DropThreadIsRunning || ResizeThreadIsRunning;
 
@@ -205,7 +210,7 @@ void MainWindow::onPicturesDropped(QList<QUrl> url)
 
     QList<QUrl> FileUrl;
     for (int i = 0; i < url.count(); i++) {
-        QString Filename = url.at(i).toLocalFile();
+        QString   Filename = url.at(i).toLocalFile();
         QFileInfo Info(Filename);
         if (Info.isFile()) {
             FileUrl << url.at(i);
@@ -223,8 +228,8 @@ void MainWindow::onPicturesDropped(QList<QUrl> url)
 
 void MainWindow::getFiles(QList<QUrl>& list, QUrl dirurl) const
 {
-    QDir directory(dirurl.toLocalFile());
-    QFileInfoList InfoList(directory.entryInfoList(QDir::AllEntries | QDir::NoDot | QDir::NoDotDot, QDir::Name | QDir::DirsFirst));
+    QDir          Directory(dirurl.toLocalFile());
+    QFileInfoList InfoList(Directory.entryInfoList(QDir::AllEntries | QDir::NoDot | QDir::NoDotDot, QDir::Name | QDir::DirsFirst));
 
     for (int i = 0; i < InfoList.count(); i++) {
         QUrl URL(QUrl::fromLocalFile(InfoList.at(i).absoluteFilePath()));
@@ -251,7 +256,7 @@ void MainWindow::onDropResultReady()
 
     for (int i = 0; i < Result.size(); i++) {
         QString Filename = Result.at(i).first;
-        QSize OrgSize    = Result.at(i).second;
+        QSize   OrgSize  = Result.at(i).second;
 
         // Check that the file is not added yet. If so, discard it without any warning message
         bool AlreadyPresent = false;
@@ -282,11 +287,11 @@ void MainWindow::onDropResultReady()
             ItemNewSize->setData(Qt::UserRole, QVariant::fromValue(NewSize));
 
             // Populate the table
-            int row = this->Table->rowCount();
-            this->Table->insertRow(row);
-            this->Table->setItem(row, COLUMN_FILENAME, ItemName);
-            this->Table->setItem(row, COLUMN_ORGSIZE, ItemOrgSize);
-            this->Table->setItem(row, COLUMN_NEWSIZE, ItemNewSize);
+            int Row = this->Table->rowCount();
+            this->Table->insertRow(Row);
+            this->Table->setItem(Row, COLUMN_FILENAME, ItemName);
+            this->Table->setItem(Row, COLUMN_ORGSIZE, ItemOrgSize);
+            this->Table->setItem(Row, COLUMN_NEWSIZE, ItemNewSize);
         }
         else {
             this->InvalidDroppedFiles << Filename;
@@ -297,6 +302,8 @@ void MainWindow::onDropResultReady()
     if (Result.count() != 0) {
         updateUI();
     }
+
+    ui->ButtonResize->setFocus();
 }
 
 //
@@ -337,20 +344,22 @@ void MainWindow::onDropProcessTerminated()
 
 void MainWindow::onButtonResizeClicked()
 {
-    QMessageBox::warning(this, MAIN_WINDOW_TITLE, tr("Original pictures will be overwritten. Do you want to continue?"), QMessageBox::Yes | QMessageBox::No);
+    if (QMessageBox::warning(this, MAIN_WINDOW_TITLE, tr("Original pictures will be overwritten. Do you want to continue?"), QMessageBox::Yes | QMessageBox::No)
+        == QMessageBox::Yes) {
 
-    // Build the list of files to resize
-    QList<QPair<QString, QSize>> Files;
-    for (int i = 0; i < this->Table->rowCount(); i++) {
-        QString Filename = this->Table->item(i, COLUMN_FILENAME)->text();
-        QSize Size       = this->Table->item(i, COLUMN_NEWSIZE)->data(Qt::UserRole).toSize();
-        Files << QPair<QString, QSize>(Filename, Size);
+        // Build the list of files to resize
+        QList<QPair<QString, QSize>> Files;
+        for (int i = 0; i < this->Table->rowCount(); i++) {
+            QString Filename = this->Table->item(i, COLUMN_FILENAME)->text();
+            QSize   Size     = this->Table->item(i, COLUMN_NEWSIZE)->data(Qt::UserRole).toSize();
+            Files << QPair<QString, QSize>(Filename, Size);
+        }
+
+        // Start the thread and set UI
+        ResizeThread::instance()->resize(Files);
+        ui->ProgressBar->setMaximum(this->Table->rowCount());
+        updateUI();
     }
-
-    // Start the thread and set UI
-    ResizeThread::instance()->resize(Files);
-    ui->ProgressBar->setMaximum(this->Table->rowCount());
-    updateUI();
 }
 
 //
@@ -387,12 +396,12 @@ void MainWindow::onFileResized()
 void MainWindow::onResizingTerminated()
 {
     if (!this->CloseRequested) {
-        QStringList files = ResizeThread::instance()->invalidFiles();
-        if (files.isEmpty()) {
+        QStringList Files = ResizeThread::instance()->invalidFiles();
+        if (Files.isEmpty()) {
             QMessageBox::information(this, MAIN_WINDOW_TITLE, tr("All files successfully resized!"), QMessageBox::Ok);
         }
         else {
-            DlgErrorList::openDlgErrorList(tr("Some files couldn't be resized"), files, this);
+            DlgErrorList::openDlgErrorList(tr("Some files couldn't be resized"), Files, this);
         }
 
         updateUI();
@@ -409,12 +418,12 @@ void MainWindow::onResizingTerminated()
 void MainWindow::onResizingAborted()
 {
     if (!this->CloseRequested) {
-        QStringList files = ResizeThread::instance()->invalidFiles();
-        if (files.isEmpty()) {
+        QStringList Files = ResizeThread::instance()->invalidFiles();
+        if (Files.isEmpty()) {
             QMessageBox::warning(this, MAIN_WINDOW_TITLE, tr("Resizing process interrupted by user."), QMessageBox::Ok);
         }
         else {
-            DlgErrorList::openDlgErrorList(tr("Resizing process interrupted by user. Some files couldn't be resized."), files, this);
+            DlgErrorList::openDlgErrorList(tr("Resizing process interrupted by user. Some files couldn't be resized."), Files, this);
         }
 
         updateUI();

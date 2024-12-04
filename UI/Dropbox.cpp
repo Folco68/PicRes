@@ -1,6 +1,6 @@
 /*
  * PicRes - GUI program to resize pictures in an easy way
- * Copyright (C) 2020 Martial Demolins AKA Folco
+ * Copyright (C) 2020-2025 Martial Demolins AKA Folco
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,15 +18,29 @@
  * mail: martial <dot> demolins <at> gmail <dot> com
  */
 
-#include "TableItem.hpp"
+#include "Dropbox.hpp"
+#include <QMimeData>
 
 //
-//  TableItem
+//  dragEnterEvent
 //
-// Create a QTableWidgetItem with a centered content
+// Tell the Dropbox to accept only file drops
 //
 
-TableItem::TableItem(QString text) : QTableWidgetItem(text, Qt::DisplayRole)
+void Dropbox::dragEnterEvent(QDragEnterEvent* event)
 {
-    setTextAlignment(Qt::AlignCenter);
+    if (event->mimeData()->hasUrls()) {
+        event->acceptProposedAction();
+    }
+}
+
+//
+//  dropEvent
+//
+// Send a signal caught by the MainWindow
+//
+
+void Dropbox::dropEvent(QDropEvent* event)
+{
+    emit picturesDropped(event->mimeData()->urls());
 }

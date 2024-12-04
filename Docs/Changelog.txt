@@ -59,3 +59,11 @@
 - add the ability to drop folders (files are added recursively)
 - emit a new signal when aborting a process, allowing to close the program without popping a dialog about current process
 
+2025/12/04
+- deleted singletons in the destructor of MainWindow, because QApplication::exec() does not return on all platforms
+- added a release() method to the singletons to avoid unnecessary instanciations
+- standardized variables case
+- added Window and Application icons
+- formatted all files
+- fixed: cancelling the Resize confirmation dialog was not implemented!
+- standardized the Help dialog

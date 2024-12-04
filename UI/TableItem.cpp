@@ -1,6 +1,6 @@
 /*
  * PicRes - GUI program to resize pictures in an easy way
- * Copyright (C) 2020 Martial Demolins AKA Folco
+ * Copyright (C) 2020-2025 Martial Demolins AKA Folco
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,23 +18,16 @@
  * mail: martial <dot> demolins <at> gmail <dot> com
  */
 
-#ifndef TABLEITEM_HPP
-#define TABLEITEM_HPP
-
-#include <QString>
-#include <QTableWidgetItem>
+#include "TableItem.hpp"
 
 //
 //  TableItem
 //
-// This class is a QTableWidgetItem which centers its content
+// Create a QTableWidgetItem with a centered content
 //
 
-class TableItem:
-    public QTableWidgetItem
+TableItem::TableItem(QString text)
+    : QTableWidgetItem(text, Qt::DisplayRole)
 {
-    public:
-        explicit TableItem(QString text = QString());
-};
-
-#endif // TABLEITEM_HPP
+    setTextAlignment(Qt::AlignCenter);
+}

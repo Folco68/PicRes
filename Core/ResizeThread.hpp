@@ -1,6 +1,6 @@
 /*
  * PicRes - GUI program to resize pictures in an easy way
- * Copyright (C) 2020 Martial Demolins AKA Folco
+ * Copyright (C) 2020-2025 Martial Demolins AKA Folco
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,23 +27,24 @@
 #include <QString>
 #include <QThread>
 
-class ResizeThread : public QThread
+class ResizeThread: public QThread
 {
     Q_OBJECT
 
-public:
-    static ResizeThread* instance();                 // Return a pointer to the object instance. Create the instance if needed
-    void resize(QList<QPair<QString, QSize>> files); // Called when the Resize button is clicked
-    QStringList invalidFiles() const;
+  public:
+    static ResizeThread* instance();                                 // Return a pointer to the object instance. Create the instance if needed
+    static void          release();                                  // Delete the thread if it was created
+    void                 resize(QList<QPair<QString, QSize>> files); // Called when the Resize button is clicked
+    QStringList          invalidFiles() const;
 
-private:
-    static ResizeThread* resizethread; // Singleton instance pointer
-    void run() override;               // Thread worker
+  private:
+    static ResizeThread* resizethread;   // Singleton instance pointer
+    void                 run() override; // Thread worker
 
-    QList<QPair<QString, QSize>> Files; // Contain a description of the files that have to be resized
-    QStringList InvalidFiles;           // Contain the list of the files which couldn't be resized
+    QList<QPair<QString, QSize>> Files;        // Contain a description of the files that have to be resized
+    QStringList                  InvalidFiles; // Contain the list of the files which couldn't be resized
 
-signals:
+  signals:
     void resizingFile(QString filename); // Emitted the name of the file whose resizing process starts
     void fileResized();                  // Emitted when a file resizing is terminated (successfully or not)
     void resizingTerminated();           // Emitted when all files have been resized-+

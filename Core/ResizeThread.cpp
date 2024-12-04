@@ -1,6 +1,6 @@
 /*
  * PicRes - GUI program to resize pictures in an easy way
- * Copyright (C) 2020 Martial Demolins AKA Folco
+ * Copyright (C) 2020-2025 Martial Demolins AKA Folco
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,14 @@ ResizeThread* ResizeThread::instance()
     return resizethread;
 }
 
+void ResizeThread::release()
+{
+    if (resizethread != nullptr) {
+        delete resizethread;
+        resizethread = nullptr;
+    }
+}
+
 void ResizeThread::resize(QList<QPair<QString, QSize>> files)
 {
     this->Files = files;
@@ -44,20 +52,20 @@ void ResizeThread::run()
 
     // Resize images
     for (int i = 0; i < this->Files.count(); i++) {
-        QPair<QString, QSize> file = this->Files.at(i);
+        QPair<QString, QSize> File = this->Files.at(i);
 
         // Read data, and emit a signal to UI
-        QString filename = file.first;
-        QSize size       = file.second;
-        emit resizingFile(filename);
+        QString Filename = File.first;
+        QSize   Size     = File.second;
+        emit resizingFile(Filename);
 
         // Open image
-        QImage image(filename);
+        QImage Image(Filename);
 
         // Resize the image
-        QImage ResizedImage = image.scaled(size.width(), size.height(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        if (ResizedImage.isNull() || !ResizedImage.save(filename)) {
-            this->InvalidFiles << filename;
+        QImage ResizedImage = Image.scaled(Size.width(), Size.height(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        if (ResizedImage.isNull() || !ResizedImage.save(Filename)) {
+            this->InvalidFiles << Filename;
         }
 
         // Tell the UI that a file has been processed

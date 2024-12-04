@@ -1,6 +1,6 @@
 /*
  * PicRes - GUI program to resize pictures in an easy way
- * Copyright (C) 2020 Martial Demolins AKA Folco
+ * Copyright (C) 2020-2025 Martial Demolins AKA Folco
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,13 +19,16 @@
  */
 
 #include "DlgHelp.hpp"
-#include "Global.hpp"
+#include "../BeforeRelease.hpp"
+#include "../Global.hpp"
 #include "ui_DlgHelp.h"
 #include <QFile>
 #include <QPushButton>
 #include <QTextStream>
 
-DlgHelp::DlgHelp(QWidget* parent) : QDialog(parent), ui(new Ui::DlgHelp)
+DlgHelp::DlgHelp(QWidget* parent)
+    : QDialog(parent)
+    , ui(new Ui::DlgHelp)
 {
     // UI
     ui->setupUi(this);
@@ -33,21 +36,33 @@ DlgHelp::DlgHelp(QWidget* parent) : QDialog(parent), ui(new Ui::DlgHelp)
     ui->TabWidget->setCurrentIndex(0);                              // Ensure that the active tab is the firt one
     setWindowTitle(MAIN_WINDOW_TITLE);
 
-    // Load texts
+    // Readme
     QFile FileReadme(":/Readme.txt");
-    FileReadme.open(QIODevice::ReadOnly);
-    QTextStream StreamReadme(&FileReadme);
-    ui->TextReadme->setPlainText(StreamReadme.readAll());
+    if (FileReadme.open(QIODevice::ReadOnly)) {
+        QTextStream StreamReadme(&FileReadme);
+        QString     Readme = StreamReadme.readAll();
+        Readme.replace("PLACEHOLDER_POSITION_STR", POSITION_STR);
+        Readme.replace("PLACEHOLDER_COPYRIGHT_STR", COPYRIGHT_STR);
+        Readme.replace("PLACEHOLDER_APPLICATION_VERSION_STR", APPLICATION_VERSION_STR);
+        Readme.replace("PLACEHOLDER_QT_VERSION_STR", QT_VERSION_STR);
+        Readme.replace("PLACEHOLDER_EMAIL_PERSONAL", EMAIL_PERSONAL);
+        Readme.replace("PLACEHOLDER_EMAIL_PROFESSIONAL", EMAIL_PROFESSIONAL);
+        ui->TextReadme->setPlainText(Readme);
+    }
 
+    // License
     QFile FileLicense(":/License.txt");
-    FileLicense.open(QIODevice::ReadOnly);
-    QTextStream StreamLicense(&FileLicense);
-    ui->TextLicense->setPlainText(StreamLicense.readAll());
+    if (FileLicense.open(QIODevice::ReadOnly)) {
+        QTextStream StreamLicense(&FileLicense);
+        ui->TextLicense->setPlainText(StreamLicense.readAll());
+    }
 
+    // Changelog
     QFile FileChangelog(":/Changelog.txt");
-    FileChangelog.open(QIODevice::ReadOnly);
-    QTextStream StreamChangelog(&FileChangelog);
-    ui->TextChangelog->setPlainText(StreamChangelog.readAll());
+    if (FileChangelog.open(QIODevice::ReadOnly)) {
+        QTextStream StreamChangelog(&FileChangelog);
+        ui->TextChangelog->setPlainText(StreamChangelog.readAll());
+    }
 
     // Connection
     connect(ui->ButtonClose, &QPushButton::clicked, [this]() { accept(); });
@@ -60,7 +75,7 @@ DlgHelp::~DlgHelp()
 
 void DlgHelp::openDlgHelp(QWidget* parent)
 {
-    DlgHelp* dlg = new DlgHelp(parent);
-    dlg->exec();
-    delete dlg;
+    DlgHelp* Dlg = new DlgHelp(parent);
+    Dlg->exec();
+    delete Dlg;
 }

@@ -18,9 +18,26 @@
  * mail: martial <dot> demolins <at> gmail <dot> com
  */
 
-#ifndef GLOBAL_HPP
-#define GLOBAL_HPP
+#ifndef DLGHELP_HPP
+#define DLGHELP_HPP
 
-#define MAIN_WINDOW_TITLE "PicRes - Batch Picture Resizing"
+#include <QDialog>
 
-#endif // GLOBAL_HPP
+namespace Ui {
+    class DlgHelp;
+}
+
+class DlgHelp: public QDialog
+{
+    Q_OBJECT
+
+  public:
+    static void openDlgHelp(QWidget* parent);
+
+  private:
+    explicit DlgHelp(QWidget* parent);
+    ~DlgHelp();
+    Ui::DlgHelp* ui;
+};
+
+#endif // DLGHELP_HPP

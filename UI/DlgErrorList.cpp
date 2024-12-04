@@ -1,6 +1,6 @@
 /*
  * PicRes - GUI program to resize pictures in an easy way
- * Copyright (C) 2020 Martial Demolins AKA Folco
+ * Copyright (C) 2020-2025 Martial Demolins AKA Folco
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  */
 
 #include "DlgErrorList.hpp"
-#include "Global.hpp"
+#include "../Global.hpp"
 #include "ui_DlgErrorList.h"
 #include <QPushButton>
 
@@ -29,7 +29,9 @@
 // Ctor
 //
 
-DlgErrorList::DlgErrorList(QString message, QStringList filenames, QWidget* parent) : QDialog(parent), ui(new Ui::DlgErrorList)
+DlgErrorList::DlgErrorList(QString message, QStringList filenames, QWidget* parent)
+    : QDialog(parent)
+    , ui(new Ui::DlgErrorList)
 {
     // UI
     ui->setupUi(this);
@@ -62,7 +64,7 @@ DlgErrorList::~DlgErrorList()
 
 void DlgErrorList::openDlgErrorList(QString message, QStringList filenames, QWidget* parent)
 {
-    DlgErrorList* dlg = new DlgErrorList(message, filenames, parent);
-    dlg->exec();
-    delete dlg;
+    DlgErrorList* Dlg = new DlgErrorList(message, filenames, parent);
+    Dlg->exec();
+    delete Dlg;
 }

@@ -1,6 +1,6 @@
 /*
  * PicRes - GUI program to resize pictures in an easy way
- * Copyright (C) 2020 Martial Demolins AKA Folco
+ * Copyright (C) 2020-2025 Martial Demolins AKA Folco
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,25 +34,26 @@
 // This class is a worker thread that retrieve data of files dropped in the UI
 //
 
-class DropThread : public QThread
+class DropThread: public QThread
 {
     Q_OBJECT
 
-public:
-    static DropThread* instance();                     // Return a ptr to the object instance; create it if needed
-    void drop(QList<QUrl> URLs);                       // Called when the main UI receives files
-    void result(QList<QPair<QString, QSize>>* result); // Gives the result processed by the worker thread
+  public:
+    static DropThread* instance();                                   // Return a ptr to the object instance; create it if needed
+    static void        release();                                    // Delete the thread if it was created
+    void               drop(QList<QUrl> URLs);                       // Called when the main UI receives files
+    void               result(QList<QPair<QString, QSize>>* result); // Gives the result processed by the worker thread
 
-private:
-    void run() override;               // Worker
+  private:
+    void run() override; // Worker
 
-    static DropThread* dropthread;       // Singleton pointer
-    QList<QUrl> Queue;                   // Store the URLs dropped into the UI
-    QList<QPair<QString, QSize>> Result; // Store the result of the worker thread
-    QMutex MutexQueue;                   // Control access to the queue list
-    QMutex MutexResult;                  // Control access to the result list
+    static DropThread*           dropthread;  // Singleton pointer
+    QList<QUrl>                  Queue;       // Store the URLs dropped into the UI
+    QList<QPair<QString, QSize>> Result;      // Store the result of the worker thread
+    QMutex                       MutexQueue;  // Control access to the queue list
+    QMutex                       MutexResult; // Control access to the result list
 
-signals:
+  signals:
     void dropResultReady();                       // One or several results are available for the main window
     void processingDroppedFile(QString filename); // The worker start to process a file
     void dropProcessTerminaded();                 // Nothing more to handle, worker stops

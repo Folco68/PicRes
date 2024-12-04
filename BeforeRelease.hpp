@@ -1,6 +1,6 @@
 /*
  * PicRes - GUI program to resize pictures in an easy way
- * Copyright (C) 2020 Martial Demolins AKA Folco
+ * Copyright (C) 2020-2025 Martial Demolins AKA Folco
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,34 +18,18 @@
  * mail: martial <dot> demolins <at> gmail <dot> com
  */
 
-#ifndef DLGERRORLIST_HPP
-#define DLGERRORLIST_HPP
-
-#include <QDialog>
-#include <QStringList>
-
-namespace Ui {
-    class DlgErrorList;
-}
+#ifndef BEFORERELEASE_HPP
+#define BEFORERELEASE_HPP
 
 //
-//  DlgErrorList
+// Some strings that need an update before a commit or a release
+// Update Changelog.txt with the git changelog
+// Update TODO if necessary
 //
-// This class is a QDialog showing the list of files that couldn't be dropped or resized
-//
+#define APPLICATION_VERSION_STR "2.2.0"
+#define POSITION_STR            "Service Engineer (S2), Market France/BeNeLux, Tetra Pak"
+#define COPYRIGHT_STR           "(c)2020-2025 Martial Demolins"
+#define EMAIL_PROFESSIONAL      "martial.demolins@tetrapak.com"
+#define EMAIL_PERSONAL          "martial.demolins@gmail.com"
 
-class DlgErrorList : public QDialog
-{
-    Q_OBJECT
-
-public:
-    static void openDlgErrorList(QString message, QStringList filenames, QWidget* parent);
-
-private:
-    DlgErrorList(QString message, QStringList filenames, QWidget* parent);
-    ~DlgErrorList();
-    Ui::DlgErrorList* ui;
-};
-
-
-#endif // DLGERRORLIST_HPP
+#endif // BEFORERELEASE_HPP

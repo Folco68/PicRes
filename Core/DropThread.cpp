@@ -1,6 +1,6 @@
 /*
  * PicRes - GUI program to resize pictures in an easy way
- * Copyright (C) 2020 Martial Demolins AKA Folco
+ * Copyright (C) 2020-2025 Martial Demolins AKA Folco
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,6 +44,20 @@ DropThread* DropThread::instance()
 }
 
 //
+//  release
+//
+// Delete the thread if it exists
+//
+
+void DropThread::release()
+{
+    if (dropthread != nullptr) {
+        delete dropthread;
+        dropthread = nullptr;
+    }
+}
+
+//
 //  drop
 //
 // Called by the main window when files are dropped. Store received data and start the worker thread
@@ -81,18 +95,18 @@ void DropThread::run()
         }
 
         // Take the first URL and get filename
-        QUrl url = Queue.takeFirst();
+        QUrl Url = Queue.takeFirst();
         this->MutexQueue.unlock();
-        QString filename(url.toLocalFile());
+        QString Filename(Url.toLocalFile());
 
         // Emit a signal to say to the main UI which file is being processed
-        emit processingDroppedFile(filename);
+        emit processingDroppedFile(Filename);
 
         // Add the picture filename and its size to the result list. Size is invalid if the picture couldn't be read
-        QImageReader image(filename);
-        QSize size(image.canRead() ? image.size() : QSize());
+        QImageReader Image(Filename);
+        QSize        Size(Image.canRead() ? Image.size() : QSize());
         this->MutexResult.lock();
-        this->Result << QPair<QString, QSize>(filename, size);
+        this->Result << QPair<QString, QSize>(Filename, Size);
         this->MutexResult.unlock();
 
         // Emit a signal to say that at least one result is available

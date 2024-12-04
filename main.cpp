@@ -1,6 +1,6 @@
 /*
  * PicRes - GUI program to resize pictures in an easy way
- * Copyright (C) 2020 Martial Demolins AKA Folco
+ * Copyright (C) 2020-2025 Martial Demolins AKA Folco
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,12 +18,11 @@
  * mail: martial <dot> demolins <at> gmail <dot> com
  */
 
-#include "DropThread.hpp"
-#include "MainWindow.hpp"
-#include "ResizeThread.hpp"
+#include "UI/MainWindow.hpp"
 #include <QApplication>
+#include <QGuiApplication>
+#include <QIcon>
 
-//
 //  main
 //
 // Create the MainWindow, show it and execute it
@@ -31,11 +30,9 @@
 
 int main(int argc, char* argv[])
 {
-    QApplication a(argc, argv);
-    MainWindow w(argc, argv); // Handle files dropped on the program icon (or passed from CLI)
-    w.show();
-    int ret = a.exec();
-    delete DropThread::instance();
-    delete ResizeThread::instance();
-    return ret;
+    QApplication Application(argc, argv);
+    QGuiApplication::setWindowIcon(QIcon(":/Main/Icon.png"));
+    MainWindow Window(argc, argv); // Handle files dropped on the program icon (or passed from CLI)
+    Window.show();
+    return Application.exec();
 }

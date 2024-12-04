@@ -1,6 +1,6 @@
 /*
  * PicRes - GUI program to resize pictures in an easy way
- * Copyright (C) 2020 Martial Demolins AKA Folco
+ * Copyright (C) 2020-2025 Martial Demolins AKA Folco
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,11 +21,11 @@
 #ifndef DROPBOX_HPP
 #define DROPBOX_HPP
 
-#include <QUrl>
-#include <QList>
-#include <QGroupBox>
-#include <QDropEvent>
 #include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QGroupBox>
+#include <QList>
+#include <QUrl>
 
 //
 //  Dropbox
@@ -33,18 +33,21 @@
 // This class is used to override two methods of the QGroupBox object, to handle drag and drop
 //
 
-class Dropbox : public QGroupBox
+class Dropbox: public QGroupBox
 {
     Q_OBJECT
 
-public:
-    explicit Dropbox(QWidget* parent) : QGroupBox(parent) {} // Ctor is mMandatory because the UI factory creates the groupbox with a parent
+  public:
+    explicit Dropbox(QWidget* parent)
+        : QGroupBox(parent)
+    {
+    } // Ctor is mMandatory because the UI factory creates the groupbox with a parent
 
-private:
+  private:
     void dragEnterEvent(QDragEnterEvent* event) override; // Called when something is dragged over the object
     void dropEvent(QDropEvent* event) override;           // Called when something is dropped on the object
 
-signals:
+  signals:
     void picturesDropped(QList<QUrl> URLs); // Sent to tell the MainWindow that files have been dropped
 };
 

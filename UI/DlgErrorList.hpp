@@ -18,9 +18,34 @@
  * mail: martial <dot> demolins <at> gmail <dot> com
  */
 
-#ifndef GLOBAL_HPP
-#define GLOBAL_HPP
+#ifndef DLGERRORLIST_HPP
+#define DLGERRORLIST_HPP
 
-#define MAIN_WINDOW_TITLE "PicRes - Batch Picture Resizing"
+#include <QDialog>
+#include <QStringList>
 
-#endif // GLOBAL_HPP
+namespace Ui {
+    class DlgErrorList;
+}
+
+//
+//  DlgErrorList
+//
+// This class is a QDialog showing the list of files that couldn't be dropped or resized
+//
+
+class DlgErrorList: public QDialog
+{
+    Q_OBJECT
+
+  public:
+    static void openDlgErrorList(QString message, QStringList filenames, QWidget* parent);
+
+  private:
+    DlgErrorList(QString message, QStringList filenames, QWidget* parent);
+    ~DlgErrorList();
+    Ui::DlgErrorList* ui;
+};
+
+
+#endif // DLGERRORLIST_HPP

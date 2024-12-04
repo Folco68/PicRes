@@ -24,3 +24,10 @@
 + allow to drop folders (recursively)
 + adding a directory make URL count false, so the progress bar is false
 + display a dialog when resizing process has been interrupted
++ delete singletons in the destructor of MainWindow
++ use a release method to delete the singletons to avoid useless instanciation
++ standardize variables case
++ add window and application icon
++ format all files
++ fixed resizing cancellation dialog not implememnted!
++ standardize Help dialog
